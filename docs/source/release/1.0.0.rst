@@ -1,0 +1,5 @@
+1.0.0 :small:`2019-10-01`
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SCALE: Single-cell ATAC-seq analysis via Latent feature Extraction
+
