@@ -5,12 +5,12 @@
    
 |Stars| |PyPI| |PyPIDownloads| |Docs| 
 
-.. |Stars| image:: https://img.shields.io/github/stars/jsxlei/SCALE?logo=GitHub&color=yellow
-   :target: https://github.com/jsxlei/SCALE/stargazers
-.. |PyPI| image:: https://img.shields.io/pypi/v/scale-atac?logo=PyPI
-   :target: https://pypi.org/project/scale-atac
-.. |PyPIDownloads| image:: https://pepy.tech/badge/scale-atac
-   :target: https://pepy.tech/project/scale-atac
+.. |Stars| image:: https://img.shields.io/github/stars/jsxlei/SCALE_v2?logo=GitHub&color=yellow
+   :target: https://github.com/jsxlei/SCALE_v2/stargazers
+.. |PyPI| image:: https://img.shields.io/pypi/v/scale-v2?logo=PyPI
+   :target: https://pypi.org/project/scale-v2
+.. |PyPIDownloads| image:: https://pepy.tech/badge/scale-v2
+   :target: https://pepy.tech/project/scale-v2
 .. |Docs| image:: https://readthedocs.com/projects/scale_v2/badge/?version=latest
    :target: https://scale_v2.readthedocs.io
    

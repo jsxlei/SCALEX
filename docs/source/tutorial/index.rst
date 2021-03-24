@@ -1,13 +1,13 @@
 Tutorial
 =========
 
-Integration
+`Integration <../tutorial/Integration_PBMC.ipynb>`_
 --------------------
 
 before integration
 
 .. image:: ../_static/img/pbmc_before_integration.png
-   :width: 400px
+   :width: 500px
 
 after SCALE v2 integration
 
@@ -15,8 +15,9 @@ after SCALE v2 integration
    :width: 600px
 
 
-Projection
+`Projection <../tutorial/Projection_pancreas.ipynb>`_
 -------------
+
 Map new data to the embeddings of reference
 
 A pancreas reference was created by integrating eight batches.
@@ -27,11 +28,11 @@ Here, map pancreas_gse81547, pancreas_gse83139 and pancreas_gse114297 to the emb
     :width: 600px
 
 
-Annotation
------------
-Annotate cells in new data according to the embeddings of reference
+Label transfer
+---------------
+Annotate cells in new data through label transfer
 
-Annotate tabula muris data and mouse kidney data based-on mouse atlas reference
+Label transfer tabula muris data and mouse kidney data from mouse atlas reference
 
 mouse atlas reference
 
@@ -43,29 +44,40 @@ query tabula muris aging and query mouse kidney
 .. image:: ../_static/img/query_tabula_muris_aging.png
     :width: 300px
 
-.. image:: ../_static/img/query_kideny.png
+.. image:: ../_static/img/query_kidney.png
     :width: 300px
     
-scATAC-seq data (To be updated)
+    
+`Integration scATAC-seq data <Integration_scATAC-seq.ipynb>`_
 ---------------
 
+.. image:: ../_static/img/scATAC_integration.png
+    :width: 600px
+
+
+Integration cross-modality data
+-------------------------------
+Integrate scRNA-seq and scATAC-seq dataset
+
+.. image:: ../_static/img/cross-modality_integration.png
+    :width: 600px
+    
 
 Spatial data (To be updated)
 ------------
-* Integrating spatial data with scRNA-seq
+Integrating spatial data with scRNA-seq
 
 
 Examples
 --------
-* Integrating pancreas data using SCALE v2
-* Integrating PBMC data using SCALE v2
 
 .. toctree::
     :maxdepth: 2
     :hidden:
     
-    Integrating pancreas data using SCALE v2
-    Integrating PBMC data using SCALE v2
+    Integration_PBMC
+    Projection_pancreas
+    Integration_scATAC-seq
     
     
 
