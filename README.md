@@ -72,11 +72,11 @@ See document
 
 ## Previous version [SCALE](https://github.com/jsxlei/SCALE)
 
-SCALE is still available in SCALE v2
+Previous SCALE is still available in SCALE v2 by command line or api.
 
 ### Command line
 
-    SCALE.py --d data --version 1
+    SCALE.py -d data --version 1
     
 ### API
 
