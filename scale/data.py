@@ -241,7 +241,7 @@ def preprocessing_atac(
         min_features: int = 100, 
         min_cells: int = 3, 
         target_sum=None, 
-        n_top_features = 2000, # or gene list
+        n_top_features = 30000, # or gene list
         chunk_size: int = CHUNK_SIZE,
         log=None
     ):
