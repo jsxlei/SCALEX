@@ -1,8 +1,8 @@
 .. sidebar:: Contributors
 
-    * `Lei Xiong`_: leader developer  
-    * `Kang Tian`_: developer
-    * `Yuzhe Li`_: developer
+    * `Lei Xiong`_: Leader Developer  
+    * `Kang Tian`_: Developer
+    * `Yuzhe Li`_: Developer
 
 .. _Lei Xiong: http://xiong-lei.com/
 .. _Kang Tian:
