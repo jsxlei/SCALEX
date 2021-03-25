@@ -1,0 +1,11 @@
+lib/*.pyc
+*.pyc
+*.ipynb_checkpoints
+*.DS_Store
+lib/__pycache__
+other/
+output/
+build/
+dist/
+scale_v2.egg-info/
+docs/_build/
