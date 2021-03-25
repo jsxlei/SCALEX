@@ -298,7 +298,8 @@ def reassign_cluster_with_ref(Y_pred, Y):
         for i, j in index:
             y_[np.where(y_pred==i)] = j
         return y_
-    from sklearn.utils.linear_assignment_ import linear_assignment
+#     from sklearn.utils.linear_assignment_ import linear_assignment
+    from scipy.optimize import linear_sum_assignment as linear_assignment
 #     print(Y_pred.size, Y.size)
     assert Y_pred.size == Y.size
     D = max(Y_pred.max(), Y.max())+1
@@ -310,7 +311,7 @@ def reassign_cluster_with_ref(Y_pred, Y):
     return reassign_cluster(Y_pred, ind), ind
 
 
-def plot_confusion(adata, save=None, cmap='Blues'):
+def plot_confusion(y, y_pred, save=None, cmap='Blues'):
     """
     Plot confusion matrix
     
@@ -329,26 +330,18 @@ def plot_confusion(adata, save=None, cmap='Blues'):
     NMI score
     ARI score
     """
-    y, ind = reassign_cluster_with_ref(adata.obs['leiden'].cat.codes, adata.obs['celltype'].cat.codes) # ind[:, 0] leiden, ind[:, 1] cell type
-    d = dict(zip(ind[:, 1], ind[:, 0]))
+    
+    y_class, pred_class_ = np.unique(y), np.unique(y_pred)
 
-    pred_class = []
-    for i in range(len(d)):
-        if str(d[i]) in adata.obs['leiden'].cat.categories:
-#         if d[i] in range(len(adata.obs['leiden'].cat.categories)):
-            pred_class.append(str(d[i]))
-        else:
-            pred_class.append('')
-
-    cm = confusion_matrix(y, adata.obs['celltype'].cat.codes)
-    f1 = f1_score(adata.obs['celltype'].cat.codes, y, average='micro')
-    nmi = normalized_mutual_info_score(adata.obs['celltype'].cat.codes, y)
-    ari = adjusted_rand_score(adata.obs['celltype'].cat.codes, y)
+    cm = confusion_matrix(y, y_pred)
+    f1 = f1_score(y, y_pred, average='micro')
+    nmi = normalized_mutual_info_score(y, y_pred)
+    ari = adjusted_rand_score(y, y_pred)
     
     cm = cm.astype('float') / cm.sum(axis=0)[np.newaxis, :]
 
     plt.figure(figsize=(14, 14))
-    sns.heatmap(cm, xticklabels=adata.obs['celltype'].cat.categories, yticklabels=pred_class,
+    sns.heatmap(cm, xticklabels=y_class, yticklabels=pred_class,
                     cmap=cmap, square=True, cbar=False, vmin=0, vmax=1)
 
     plt.xticks(rotation=45, horizontalalignment='right') #, fontsize=14)
@@ -361,4 +354,3 @@ def plot_confusion(adata, save=None, cmap='Blues'):
         plt.show()
     
     return f1, nmi, ari
-    

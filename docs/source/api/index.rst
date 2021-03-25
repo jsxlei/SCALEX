@@ -21,6 +21,7 @@ Function
     :toctree: .
     
     SCALE
+    label_transfer
 
 
 Data
@@ -47,6 +48,8 @@ Preprocessing
     :toctree: .
    
     data.preprocessing
+    data.preprocessing_rna
+    data.preprocessing_atac
     data.batch_scale
     data.reindex
    

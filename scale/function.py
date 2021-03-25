@@ -223,6 +223,34 @@ def SCALE(
         
         
 
+def label_transfer(ref, query, rep='latent', label='celltype'):
+    """
+    Label transfer
+    
+    Parameters
+    -----------
+    ref
+        reference containing the projected representations and labels
+    query
+        query data to transfer label
+    rep
+        representations to train the classifier. Default is `latent`
+    label
+        label name. Defautl is `celltype` stored in ref.obs
+    
+    Returns
+    --------
+    transfered label
+    """
 
-
+    from sklearn.neighbors import KNeighborsClassifier
+    
+    X_train = ref.obsm[rep]
+    y_train = ref.obs[label]
+    X_test = query.obsm[rep]
+    
+    knn = knn = KNeighborsClassifier().fit(X_train, y_train)
+    y_test = knn.predict(X_test)
+    
+    return y_test
 
