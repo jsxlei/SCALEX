@@ -23,19 +23,61 @@ Installation only requires a few minutes.
 
 ## Quick Start
 
+SCALE v2 can both used under command line and API function in jupyter notebook
+
 
 ### 1. Command line
 
     SCALE.py --data_list data1 data2 --batch_categories batch1 batch2 
     
-    data_list: data path of each batch of single-cell dataset
-    batch_categories: name of each batch
+#### Parameters
+
+    data_list
+        A list of matrices file (each as a `batch` or a single batch/batch-merged file.
+    batch_categories
+        Categories for the batch annotation. By default, use increasing numbers.
+    profile
+        Specify the single-cell profile, RNA or ATAC. Default: RNA.
+    join
+        Use intersection ('inner') or union ('outer') of variables of different batches. 
+    batch_key
+        Add the batch annotation to obs using this key. By default, batch_key='batch'.
+    batch_name
+        Use this annotation in obs as batches for training model. Default: 'batch'.
+    min_features
+        Filtered out cells that are detected in less than min_features. Default: 600.
+    min_cells
+        Filtered out genes that are detected in less than min_cells. Default: 3.
+    n_top_features
+        Number of highly-variable genes to keep. Default: 2000.
+    batch_size
+        Number of samples per batch to load. Default: 64.
+    lr
+        Learning rate. Default: 2e-4.
+    max_iteration
+        Max iterations for training. Training one batch_size samples is one iteration. Default: 30000.
+    seed
+        Random seed for torch and numpy. Default: 124.
+    gpu
+        Index of GPU to use if GPU is available. Default: 0.
+    outdir
+        Output directory. Default: 'output/'.
+    projection
+        Use for new dataset projection. Input the folder containing the pre-trained model. Default: None. 
+    impute
+        If True, calculate the imputed gene expression and store it at adata.layers['impute']. Default: False.
+    chunk_size
+        Number of samples from the same batch to transform. Default: 20000.
+    ignore_umap
+        If True, do not perform UMAP for visualization and leiden for clustering. Default: False.
+    verbose
+        Verbosity, True or False. Default: False.
     
 
 #### Output
 Output will be saved in the output folder including:
 * **checkpoint**:  saved model to reproduce results cooperated with option --checkpoint or -c
-* **adata.h5ad**:  preprocessed data and results including, latent, clustering and imputation
+* **[adata.h5ad](https://anndata.readthedocs.io/en/stable/anndata.AnnData.html#anndata.AnnData)**:  preprocessed data and results including, latent, clustering and imputation
 * **umap.png**:  UMAP visualization of latent representations of cells 
 * **log.txt**:  log file of training process
 
@@ -61,14 +103,13 @@ Look for more usage of SCALE v2
 Function of parameters are similar to command line options.
 Output is a Anndata object for further analysis with scanpy.
     
-#### Tutorial
-
-See [Document](https://scale-v2.readthedocs.io/en/latest/tutorial/index.html) 
+    
+## [Tutorial](https://scale-v2.readthedocs.io/en/latest/tutorial/index.html) 
 
 
 ## Previous version [SCALE](https://github.com/jsxlei/SCALE)
 
-Previous SCALE is still available in SCALE v2 by command line or api.
+Previous SCALE for single-cell ATAC-seq analysis is still available in SCALE v2 by command line or api.
 
 ### Command line
 
