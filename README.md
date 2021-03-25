@@ -1,6 +1,6 @@
 [![Stars](https://img.shields.io/github/stars/jsxlei/SCALE_v2?logo=GitHub&color=yellow)](https://github.com/jsxlei/scale_v2/stargazers)
 [![PyPI](https://img.shields.io/pypi/v/scale-v2.svg)](https://pypi.org/project/scale-v2)
-[![Documentation Status](https://readthedocs.org/projects/scale-v2/badge/?version=latest)](https://scale_v2.readthedocs.io/en/stable/?badge=stable)
+[![Documentation Status](https://readthedocs.org/projects/scale-v2/badge/?version=latest)](https://scale-v2.readthedocs.io/en/latest/?badge=stable)
 [![Downloads](https://pepy.tech/badge/scale_v2)](https://pepy.tech/project/scale_v2)
 # SCALE v2: Single-cell integrative Analysis via latent Feature Extraction 
 
