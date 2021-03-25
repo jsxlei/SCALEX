@@ -63,7 +63,7 @@ Output is a Anndata object for further analysis with scanpy.
     
 #### Tutorial
 
-See document 
+See [Document](https://scale-v2.readthedocs.io/en/latest/tutorial/index.html) 
 
 
 ## Previous version [SCALE](https://github.com/jsxlei/SCALE)

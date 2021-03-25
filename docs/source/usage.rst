@@ -11,7 +11,7 @@ Run SCALE after installation::
     
 ``data_list``: data path of each batch of single-cell dataset  
 
-``batch_categories``: name of each batch, batch_categories will rane from 0 to N if not specified
+``batch_categories``: name of each batch, batch_categories will range from 0 to N if not specified
     
 Input
 ~~~~~
