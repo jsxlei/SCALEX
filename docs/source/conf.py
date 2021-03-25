@@ -22,7 +22,7 @@ import scale
 # -- Project information -----------------------------------------------------
 
 project = 'SCALE v2'
-author = scale.__authoer__
+author = scale.__author__
 copyright = f'{datetime.now():%Y}, {author}.'
 
 
