@@ -317,8 +317,10 @@ def plot_confusion(y, y_pred, save=None, cmap='Blues'):
     
     Parameters
     ----------
-    adata
-        AnnData
+    y
+        ground truth labels
+    y_pred 
+        predicted labels
     save
         save the figure
     cmap
