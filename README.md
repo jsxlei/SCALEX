@@ -28,14 +28,14 @@ SCALE v2 can both used under command line and API function in jupyter notebook
 
 ### 1. Command line
 
-    SCALE.py --data_list data1 data2 --batch_categories batch1 batch2 
+    SCALE.py --data_list data1 data2 dataN --batch_categories batch1 batch2 batchN 
     
 #### Option
 
 * --**data_list**  
-        A list of matrices file (each as a `batch` or a single batch/batch-merged file.
+        A list of matrices file (each as a `batch`) or a single batch/batch-merged file.
 * --**batch_categories**  
-        Categories for the batch annotation. By default, use increasing numbers.
+        Categories for the batch annotation. By default, use increasing numbers if not given
 * --**profile**  
         Specify the single-cell profile, RNA or ATAC. Default: RNA.
 * --**min_features**  

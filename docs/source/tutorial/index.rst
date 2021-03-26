@@ -55,7 +55,7 @@ query tabula muris aging and query mouse kidney
     :width: 600px
 
 
-`Integration cross-modality data <../tutorial/Integration_cross-modality>`_
+`Integration cross-modality data <../tutorial/Integration_cross-modality.ipynb>`_
 -------------------------------
 Integrate scRNA-seq and scATAC-seq dataset
 
