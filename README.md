@@ -30,47 +30,47 @@ SCALE v2 can both used under command line and API function in jupyter notebook
 
     SCALE.py --data_list data1 data2 --batch_categories batch1 batch2 
     
-#### Parameters
+#### Option
 
-    data_list
+* --**data_list**  
         A list of matrices file (each as a `batch` or a single batch/batch-merged file.
-    batch_categories
+* --**batch_categories**  
         Categories for the batch annotation. By default, use increasing numbers.
-    profile
+* --**profile**  
         Specify the single-cell profile, RNA or ATAC. Default: RNA.
-    join
-        Use intersection ('inner') or union ('outer') of variables of different batches. 
-    batch_key
-        Add the batch annotation to obs using this key. By default, batch_key='batch'.
-    batch_name
-        Use this annotation in obs as batches for training model. Default: 'batch'.
-    min_features
-        Filtered out cells that are detected in less than min_features. Default: 600.
-    min_cells
+* --**min_features**  
+        Filtered out cells that are detected in less than min_features. Default: 600 for RNA, 100 for ATAC.
+* --**min_cells**  
         Filtered out genes that are detected in less than min_cells. Default: 3.
-    n_top_features
-        Number of highly-variable genes to keep. Default: 2000.
-    batch_size
-        Number of samples per batch to load. Default: 64.
-    lr
-        Learning rate. Default: 2e-4.
-    max_iteration
-        Max iterations for training. Training one batch_size samples is one iteration. Default: 30000.
-    seed
-        Random seed for torch and numpy. Default: 124.
-    gpu
-        Index of GPU to use if GPU is available. Default: 0.
-    outdir
+* --**n_top_features**  
+        Number of highly-variable genes to keep. Default: 2000 for RNA, 30000 for ATAC.
+* --**outdir**  
         Output directory. Default: 'output/'.
-    projection
+* --**projection**  
         Use for new dataset projection. Input the folder containing the pre-trained model. Default: None. 
-    impute
+* --**impute**  
         If True, calculate the imputed gene expression and store it at adata.layers['impute']. Default: False.
-    chunk_size
+* --**chunk_size**  
         Number of samples from the same batch to transform. Default: 20000.
-    ignore_umap
+* --**ignore_umap**  
         If True, do not perform UMAP for visualization and leiden for clustering. Default: False.
-    verbose
+* --**join**  
+        Use intersection ('inner') or union ('outer') of variables of different batches. 
+* --**batch_key**  
+        Add the batch annotation to obs using this key. By default, batch_key='batch'.
+* --**batch_name**  
+        Use this annotation in obs as batches for training model. Default: 'batch'.
+* --**batch_size**  
+        Number of samples per batch to load. Default: 64.
+* --**lr**  
+        Learning rate. Default: 2e-4.
+* --**max_iteration**  
+        Max iterations for training. Training one batch_size samples is one iteration. Default: 30000.
+* --**seed**  
+        Random seed for torch and numpy. Default: 124.
+* --**gpu**  
+        Index of GPU to use if GPU is available. Default: 0.
+* --**verbose**  
         Verbosity, True or False. Default: False.
     
 
@@ -109,7 +109,7 @@ Output is a Anndata object for further analysis with scanpy.
 
 ## Previous version [SCALE](https://github.com/jsxlei/SCALE)
 
-Previous SCALE for single-cell ATAC-seq analysis is still available in SCALE v2 by command line or api.
+Previous SCALE for single-cell ATAC-seq analysis is still available in SCALE v2 by command line (--version 1) or api (SCALE_v1).
 
 ### Command line
 
