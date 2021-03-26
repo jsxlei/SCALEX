@@ -55,7 +55,7 @@ query tabula muris aging and query mouse kidney
     :width: 600px
 
 
-Integration cross-modality data
+`Integration cross-modality data <../tutorial/Integration_cross-modality>`_
 -------------------------------
 Integrate scRNA-seq and scATAC-seq dataset
 
@@ -78,6 +78,7 @@ Examples
     Integration_PBMC
     Projection_pancreas
     Integration_scATAC-seq
+    Integration_cross-modality
     
     
 
