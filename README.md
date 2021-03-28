@@ -1,7 +1,7 @@
 [![Stars](https://img.shields.io/github/stars/jsxlei/SCALE_v2?logo=GitHub&color=yellow)](https://github.com/jsxlei/scale_v2/stargazers)
 [![PyPI](https://img.shields.io/pypi/v/scale-v2.svg)](https://pypi.org/project/scale-v2)
 [![Documentation Status](https://readthedocs.org/projects/scale-v2/badge/?version=latest)](https://scale-v2.readthedocs.io/en/latest/?badge=stable)
-[![Downloads](https://pepy.tech/badge/scale_v2)](https://pepy.tech/project/scale_v2)
+[![Downloads](https://pepy.tech/badge/scale_v2)](https://pepy.tech/project/scale-v2)
 # SCALE v2: Single-cell integrative Analysis via latent Feature Extraction 
 
 ## [Documentation](https://scale-v2.readthedocs.io/en/latest/index.html) 
@@ -84,9 +84,9 @@ Output will be saved in the output folder including:
      
 #### Useful options  
 * output folder for saveing results: [-o] or [--outdir] 
-* filter rare genes, default 3: [--min_cell]
-* filter low quality cells, default 600: [--min_gene]  
-* select the number of highly variable genes, keep all genes with -1, default 2000: [--n_top_genes]
+* filter rare genes, default 3: [--min_cells]
+* filter low quality cells, default 600: [--min_features]  
+* select the number of highly variable genes, keep all genes with -1, default 2000: [--n_top_featuress]
 	
     
 #### Help
