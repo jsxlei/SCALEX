@@ -1,5 +1,5 @@
-.. module:: scale
-.. automodule:: scale
+.. module:: scalex
+.. automodule:: scalex
    :noindex:
    
    
@@ -7,27 +7,27 @@ API
 ====
 
 
-Import SCALE as::
+Import SCALEX::
 
-   import scale
+   import scalex
    
    
 Function
 --------
-.. module:: scale
-.. currentmodule:: scale
+.. module:: scalex
+.. currentmodule:: scalex
 
 .. autosummary::
     :toctree: .
     
-    SCALE
+    SCALEX
     label_transfer
 
 
 Data
 -------------------
-.. module:: scale.data
-.. currentmodule:: scale
+.. module:: scalex.data
+.. currentmodule:: scalex
 
 
 Load data
@@ -66,8 +66,8 @@ DataLoader
     
 Net
 -----------
-.. module:: scale.net
-.. currentmodule:: scale
+.. module:: scalex.net
+.. currentmodule:: scalex
 
 
 Model
@@ -110,8 +110,8 @@ Utils
 
 Plot
 ------------
-.. module:: scale.plot
-.. currentmodule:: scale
+.. module:: scalex.plot
+.. currentmodule:: scalex
 
 
 .. autosummary::
@@ -125,8 +125,8 @@ Plot
 
 Metric
 ----------------
-.. module:: scale.metric
-.. currentmodule:: scale
+.. module:: scalex.metric
+.. currentmodule:: scalex
 
 
 Collections of useful measurements for evaluating results.
@@ -140,8 +140,8 @@ Collections of useful measurements for evaluating results.
 
 Logger
 ------
-.. module:: scale.logger
-.. currentmodule:: scale
+.. module:: scalex.logger
+.. currentmodule:: scalex
 
 .. autosummary::
     :toctree: .

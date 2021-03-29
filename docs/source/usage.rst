@@ -1,13 +1,13 @@
 Usage
 ----------------
 
-SCALE provide both commanline tool and api function used in jupyter notebook   
+SCALEX provide both commanline tool and api function used in jupyter notebook   
 
 Command line
 ^^^^^^^^^^^^
-Run SCALE after installation::
+Run SCALEX after installation::
 
-    SCALE.py --data_list data1 data2 --batch_categories batch1 batch2 
+    SCALEX.py --data_list data1 data2 --batch_categories batch1 batch2 
     
 ``data_list``: data path of each batch of single-cell dataset  
 
@@ -21,9 +21,9 @@ Input can be one of following:
 * multiple files of above format  
 
 .. note:: h5ad file input
-* SCALE v2 will use the ``batch`` column in the obs of adata format read from h5ad file as batch information  
+* SCALEX will use the ``batch`` column in the obs of adata format read from h5ad file as batch information  
 * Users can specify any columns in the obs with option: ``--batch_name`` name
-* If multiple inputs are given, SCALE v2 can take each file as individual batch by default, and overload previous batch information, users can change the concat name via option ``--batch_key`` other_name
+* If multiple inputs are given, SCALEX can take each file as individual batch by default, and overload previous batch information, users can change the concat name via option ``--batch_key`` other_name
 
 Output
 ~~~~~~~~~~~
@@ -45,17 +45,17 @@ Useful options
     
 Help
 ~~~~
-Look for more usage of SCALE v2::
+Look for more usage of SCALEX::
 
-	SCALE.py --help 
+	SCALEX.py --help 
     
     
 API function
 ^^^^^^^^^^^^
-Use SCALE in jupyter notebook::
+Use SCALEX in jupyter notebook::
 
-    from scale.function import SCALE
-    adata = SCALE(data_list, batch_categories)
+    from scalex.function import SCALEX
+    adata = SCALEX(data_list, batch_categories)
     
 Function of parameters are similar to command line options.
 Output is a Anndata object for further analysis with scanpy.
@@ -65,7 +65,7 @@ Output is a Anndata object for further analysis with scanpy.
 
 AnnData
 ^^^^^^^
-SCALE supports :mod:`scanpy` and :mod:`anndata`, which provides the :class:`~anndata.AnnData` class.
+SCALEX supports :mod:`scanpy` and :mod:`anndata`, which provides the :class:`~anndata.AnnData` class.
 
 .. image:: http://falexwolf.de/img/scanpy/anndata.svg
    :width: 300px

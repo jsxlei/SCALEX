@@ -17,17 +17,17 @@ from datetime import datetime
 sys.path.insert(0, os.path.abspath(__file__+'../../../..'))
 
 
-import scale
+import scalex
 
 # -- Project information -----------------------------------------------------
 
-project = 'SCALE v2'
-author = scale.__author__
+project = 'SCALEX'
+author = scalex.__author__
 copyright = f'{datetime.now():%Y}, {author}.'
 
 
 # The full version, including alpha/beta/rc tags
-release = scale.__version__
+release = scalex.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -84,7 +84,7 @@ html_theme_options = dict(navigation_depth=4, logo_only=True)  # Only show the l
 html_context = dict(
     display_github=True,  # Integrate GitHub
     github_user='jsxlei',  # Username
-    github_repo='SCALE_v2',  # Repo name
+    github_repo='SCALEX',  # Repo name
     github_version='main',  # Version
     conf_py_path='/docs/',  # Path in the checkout to the docs root
 )

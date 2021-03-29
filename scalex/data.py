@@ -24,7 +24,7 @@ from sklearn.preprocessing import maxabs_scale, MaxAbsScaler
 from glob import glob
 
 np.warnings.filterwarnings('ignore')
-DATA_PATH = os.path.expanduser("~")+'/.scale/'
+DATA_PATH = os.path.expanduser("~")+'/.scalex/'
 CHUNK_SIZE = 20000
 
 

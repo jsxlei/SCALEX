@@ -22,7 +22,7 @@ from .logger import create_logger
 from .plot import embedding
 
 
-def SCALE(
+def SCALEX(
         data_list, 
         batch_categories=None,
         profile='RNA',

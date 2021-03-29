@@ -1,29 +1,29 @@
-[![Stars](https://img.shields.io/github/stars/jsxlei/SCALE_v2?logo=GitHub&color=yellow)](https://github.com/jsxlei/scale_v2/stargazers)
-[![PyPI](https://img.shields.io/pypi/v/scale-v2.svg)](https://pypi.org/project/scale-v2)
-[![Documentation Status](https://readthedocs.org/projects/scale-v2/badge/?version=latest)](https://scale-v2.readthedocs.io/en/latest/?badge=stable)
-[![Downloads](https://pepy.tech/badge/scale_v2)](https://pepy.tech/project/scale-v2)
-# SCALE v2: Single-cell integrative Analysis via latent Feature Extraction 
+[![Stars](https://img.shields.io/github/stars/jsxlei/scalex?logo=GitHub&color=yellow)](https://github.com/jsxlei/scalex/stargazers)
+[![PyPI](https://img.shields.io/pypi/v/scalex.svg)](https://pypi.org/project/scalex)
+[![Documentation Status](https://readthedocs.org/projects/scalex/badge/?version=latest)](https://scalex.readthedocs.io/en/latest/?badge=stable)
+[![Downloads](https://pepy.tech/badge/scalex)](https://pepy.tech/project/scalex)
+# SCALEX: Single-cell integrative Analysis via latent Feature Extraction 
 
-## [Documentation](https://scale-v2.readthedocs.io/en/latest/index.html) 
+## [Documentation](https://scalex.readthedocs.io/en/latest/index.html) 
 
 ## Installation  	
 #### install from PyPI
 
-    pip install scale-v2
+    pip install scalex
     
 #### install from GitHub
 
-	git clone git://github.com/jsxlei/scale_v2.git
-	cd scale_v2
+	git clone git://github.com/jsxlei/scalex.git
+	cd scalex
 	python setup.py install
     
-SCALE v2 is implemented in [Pytorch](https://pytorch.org/) framework.  
-Running SCALE v2 on CUDA is recommended if available.   
+SCALEX is implemented in [Pytorch](https://pytorch.org/) framework.  
+Running SCALEX on CUDA is recommended if available.   
 Installation only requires a few minutes.  
 
 ## Quick Start
 
-SCALE v2 can both used under command line and API function in jupyter notebook
+SCALEX can both used under command line and API function in jupyter notebook
 
 
 ### 1. Command line
@@ -90,30 +90,30 @@ Output will be saved in the output folder including:
 	
     
 #### Help
-Look for more usage of SCALE v2
+Look for more usage of SCALEX
 
-	SCALE.py --help 
+	SCALEX.py --help 
     
     
 ### 2. API function
 
-    from scale import SCALE
-    adata = SCALE(data_list, batch_categories)
+    from scalex import SCALEX
+    adata = SCALEX(data_list, batch_categories)
     
 Function of parameters are similar to command line options.
 Output is a Anndata object for further analysis with scanpy.
     
     
-## [Tutorial](https://scale-v2.readthedocs.io/en/latest/tutorial/index.html) 
+## [Tutorial](https://scalex.readthedocs.io/en/latest/tutorial/index.html) 
 
 
 ## Previous version [SCALE](https://github.com/jsxlei/SCALE)
 
-Previous SCALE for single-cell ATAC-seq analysis is still available in SCALE v2 by command line (--version 1) or api (SCALE_v1).
+Previous SCALE for single-cell ATAC-seq analysis is still available in SCALEX by command line (--version 1) or api (SCALE_v1).
 
 ### Command line
 
-    SCALE.py -d data --version 1
+    SCALEX.py -d data --version 1
     
 ### API
 

@@ -6,7 +6,7 @@ PyPI install
 
 Pull SCALE from `PyPI <https://pypi.org/project/scalex>`__ (consider using ``pip3`` to access Python 3)::
 
-    pip install scale-v2
+    pip install scalex
 
 .. _from PyPI: https://pypi.org/project/scalex
 

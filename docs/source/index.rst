@@ -1,21 +1,21 @@
-.. scale_v2 documentation master file, created by
+.. scalex documentation master file, created by
    sphinx-quickstart on Sun Mar  7 15:52:19 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
    
 |Stars| |PyPI| |PyPIDownloads| |Docs| 
 
-.. |Stars| image:: https://img.shields.io/github/stars/jsxlei/SCALE_v2?logo=GitHub&color=yellow
-   :target: https://github.com/jsxlei/SCALE_v2/stargazers
-.. |PyPI| image:: https://img.shields.io/pypi/v/scale-v2?logo=PyPI
-   :target: https://pypi.org/project/scale-v2
-.. |PyPIDownloads| image:: https://pepy.tech/badge/scale-v2
-   :target: https://pepy.tech/project/scale-v2
-.. |Docs| image:: https://readthedocs.com/projects/scale_v2/badge/?version=latest
-   :target: https://scale_v2.readthedocs.io
+.. |Stars| image:: https://img.shields.io/github/stars/jsxlei/SCALEX?logo=GitHub&color=yellow
+   :target: https://github.com/jsxlei/SCALEX/stargazers
+.. |PyPI| image:: https://img.shields.io/pypi/v/scalex?logo=PyPI
+   :target: https://pypi.org/project/scalex
+.. |PyPIDownloads| image:: https://pepy.tech/badge/scalex
+   :target: https://pepy.tech/project/scalex
+.. |Docs| image:: https://readthedocs.com/projects/scalex/badge/?version=latest
+   :target: https://scalex.readthedocs.io
    
 
-SCALE v2: Single-Cell integrative Analysis via Latent feature Extraction
+SCALEX: Single-Cell integrative Analysis via Latent feature Extraction
 ----------------
 
 .. include:: contributors.rst

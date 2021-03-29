@@ -33,16 +33,16 @@ def get_version(rel_path):
         raise RuntimeError("Unable to find version string.")
 
 
-setup(name='scale_v2',
-      version=get_version(HERE / "scale/__init__.py"),
+setup(name='scalex',
+      version=get_version(HERE / "scalex/__init__.py"),
       packages=find_packages(),
-      description='Single-cell integrative Analysis via Latent feature Extraction',
+      description='Integrating heterogeneous single-cell data in a generalized cell embedding space for construction of continuously expandable single-cell atlases',
       long_description=README,
 
       author='Lei Xiong',
       author_email='jsxlei@gmail.com',
-      url='https://github.com/jsxlei/scale_v2',
-      scripts=['SCALE.py'],
+      url='https://github.com/jsxlei/scalex',
+      scripts=['SCALEX.py'],
       install_requires=requirements,
       python_requires='>3.6.0',
       license='MIT',

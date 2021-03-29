@@ -9,7 +9,7 @@ before integration
 .. image:: ../_static/img/pbmc_before_integration.png
    :width: 500px
 
-after SCALE v2 integration
+after SCALEX integration
 
 .. image:: ../_static/img/pbmc_integration.png
    :width: 600px
@@ -28,7 +28,7 @@ Here, map pancreas_gse81547, pancreas_gse83139 and pancreas_gse114297 to the emb
     :width: 600px
 
 
-`Label transfer <https://scale-v2.readthedocs.io/en/latest/tutorial/Projection_pancreas.html#Label-transfer>`_
+`Label transfer <https://scalex.readthedocs.io/en/latest/tutorial/Projection_pancreas.html#Label-transfer>`_
 ---------------
 Annotate cells in new data through label transfer
 
