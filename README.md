@@ -28,7 +28,7 @@ SCALEX can both used under command line and API function in jupyter notebook
 
 ### 1. Command line
 
-    SCALE.py --data_list data1 data2 dataN --batch_categories batch1 batch2 batchN 
+    SCALEX.py --data_list data1 data2 dataN --batch_categories batch1 batch2 batchN 
     
 #### Option
 
