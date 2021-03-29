@@ -117,7 +117,7 @@ Previous SCALE for single-cell ATAC-seq analysis is still available in SCALEX by
     
 ### API
 
-    from scale.extensions import SCALE_v1
+    from scalex.extensions import SCALE_v1
     SCALE_v1(data)
     
     
