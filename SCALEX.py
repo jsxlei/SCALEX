@@ -12,7 +12,7 @@
 import argparse
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Single-Cell Analysis via Latent feature Extraction Universally')
+    parser = argparse.ArgumentParser(description='Integrating heterogeneous single-cell data in a generalized cell embedding space for construction of continuously expandable single-cell atlases')
     
     parser.add_argument('--data_list', '-d', type=str, nargs='+', default=[])
     parser.add_argument('--batch_categories', '-b', type=str, nargs='+', default=None)
@@ -49,8 +49,8 @@ if __name__ == '__main__':
 
     
     if args.version == 2:
-        from scale import SCALE
-        adata = SCALE(
+        from scalex import SCALEX
+        adata = SCALEX(
             args.data_list, 
             batch_categories=args.batch_categories,
             profile=args.profile,
