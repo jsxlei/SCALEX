@@ -7,5 +7,5 @@ other/
 output/
 build/
 dist/
-scale_v2.egg-info/
+scalex.egg-info/
 docs/_build/
