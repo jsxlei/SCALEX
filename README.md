@@ -2,7 +2,12 @@
 [![PyPI](https://img.shields.io/pypi/v/scalex.svg)](https://pypi.org/project/scalex)
 [![Documentation Status](https://readthedocs.org/projects/scalex/badge/?version=latest)](https://scalex.readthedocs.io/en/latest/?badge=stable)
 [![Downloads](https://pepy.tech/badge/scalex)](https://pepy.tech/project/scalex)
-# SCALEX: Single-cell integrative Analysis via latent Feature Extraction 
+# SCALEX: Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space 
+
+![](docs/source/_static/img/scalex.jpg)
+
+## News
+2021.04.09  SCALEX is on [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v1)
 
 ## [Documentation](https://scalex.readthedocs.io/en/latest/index.html) 
 

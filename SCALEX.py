@@ -12,7 +12,7 @@
 import argparse
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Integrating heterogeneous single-cell data in a generalized cell embedding space for construction of continuously expandable single-cell atlases')
+    parser = argparse.ArgumentParser(description='Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space')
     
     parser.add_argument('--data_list', '-d', type=str, nargs='+', default=[])
     parser.add_argument('--batch_categories', '-b', type=str, nargs='+', default=None)

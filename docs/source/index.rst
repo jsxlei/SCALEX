@@ -15,7 +15,7 @@
    :target: https://scalex.readthedocs.io
    
 
-SCALEX: Single-Cell integrative Analysis via Latent feature Extraction
+SCALEX: Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space
 ----------------
 
 .. include:: contributors.rst

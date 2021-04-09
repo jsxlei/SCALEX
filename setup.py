@@ -36,7 +36,7 @@ def get_version(rel_path):
 setup(name='scalex',
       version=get_version(HERE / "scalex/__init__.py"),
       packages=find_packages(),
-      description='Integrating heterogeneous single-cell data in a generalized cell embedding space for construction of continuously expandable single-cell atlases',
+      description='Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space',
       long_description=README,
 
       author='Lei Xiong',
