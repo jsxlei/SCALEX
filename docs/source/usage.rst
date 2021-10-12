@@ -7,7 +7,7 @@ Command line
 ^^^^^^^^^^^^
 Run SCALEX after installation::
 
-    SCALEX.py --data_list data1 data2 --batch_categories batch1 batch2 
+    SCALEX.py --data_list data1 data2 --batch_categories batch_name1 batch_name2 
     
 ``data_list``: data path of each batch of single-cell dataset  
 

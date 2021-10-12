@@ -15,7 +15,7 @@
    :target: https://scalex.readthedocs.io
    
 
-SCALEX: Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space
+Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
 ----------------
 
 .. include:: contributors.rst

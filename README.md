@@ -2,12 +2,10 @@
 [![PyPI](https://img.shields.io/pypi/v/scalex.svg)](https://pypi.org/project/scalex)
 [![Documentation Status](https://readthedocs.org/projects/scalex/badge/?version=latest)](https://scalex.readthedocs.io/en/latest/?badge=stable)
 [![Downloads](https://pepy.tech/badge/scalex)](https://pepy.tech/project/scalex)
-# SCALEX: Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space 
+# [Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v1)
 
 ![](docs/source/_static/img/scalex.jpg)
 
-## News
-2021.04.09  SCALEX is on [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v1)
 
 ## [Documentation](https://scalex.readthedocs.io/en/latest/index.html) 
 
@@ -23,8 +21,7 @@
 	python setup.py install
     
 SCALEX is implemented in [Pytorch](https://pytorch.org/) framework.  
-Running SCALEX on CUDA is recommended if available.   
-Installation only requires a few minutes.  
+SCALEX can be run on CPU devices, and running SCALEX on GPU devices if available is recommended.   
 
 ## Quick Start
 
@@ -33,7 +30,11 @@ SCALEX can both used under command line and API function in jupyter notebook
 
 ### 1. Command line
 
-    SCALEX.py --data_list data1 data2 dataN --batch_categories batch1 batch2 batchN 
+    SCALEX.py --data_list data1 data2 dataN --batch_categories batch_name1 batch_name2 batch_nameN 
+    
+``data_list``: data path of each batch of single-cell dataset  
+
+``batch_categories``: name of each batch, batch_categories will range from 0 to N if not specified
     
 #### Option
 
