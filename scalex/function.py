@@ -23,7 +23,7 @@ from .plot import embedding
 
 
 def SCALEX(
-        data_list, 
+        data_list=None, 
         batch_categories=None,
         profile='RNA',
         join='inner', 
@@ -46,6 +46,9 @@ def SCALEX(
         verbose=False,
         assess=False,
         show=True,
+        eval=False,
+        test_list=None,
+        test_batch_categories=None,
     ):
     """
     Single-Cell integrative Analysis via Latent feature Extraction
@@ -134,7 +137,7 @@ def SCALEX(
             min_cells=min_cells,
             batch_name=batch_name, 
             batch_key=batch_key,
-            log=log
+            log=log,
         )
         
         early_stopping = EarlyStopping(patience=10, checkpoint_file=outdir+'/checkpoint/model.pt')
@@ -177,11 +180,13 @@ def SCALEX(
         )
 #         log.info('Processed dataset shape: {}'.format(adata.shape))
         
-    adata.obsm['latent'] = model.encodeBatch(testloader, device=device) # save latent rep
+    adata.obsm['latent'] = model.encodeBatch(testloader, device=device, eval=eval) # save latent rep
     if impute:
-        adata.layers['impute'] = model.encodeBatch(testloader, out='impute', batch_id=impute, device=device)
+        adata.layers['impute'] = model.encodeBatch(testloader, out='impute', batch_id=impute, device=device, eval=eval)
     log.info('Output dir: {}'.format(outdir))
-        
+    
+    model.to('cpu')
+    del model
     if projection and (not repeat):
         ref = sc.read_h5ad(projection+'/adata.h5ad')
         adata = AnnData.concatenate(
@@ -199,15 +204,14 @@ def SCALEX(
         
         # UMAP visualization
         sc.settings.figdir = outdir
-        sc.set_figure_params(dpi=80, figsize=(10,10), fontsize=20)
+        sc.set_figure_params(dpi=80, figsize=(3,3))
         cols = ['batch', 'celltype', 'leiden']
         color = [c for c in cols if c in adata.obs]
         if len(color) > 0:
             if projection and (not repeat):
-                embedding(adata, groupby='projection', save='.pdf', show=show)
+                embedding(adata, color='leiden', groupby='projection', save='.pdf', show=show)
             else:
-                sc.pl.umap(adata, color=color, save='.pdf', wspace=0.4, ncols=4, show=show)
-           
+                sc.pl.umap(adata, color=color, save='.pdf', wspace=0.4, ncols=4, show=show)  
         if assess:
             if len(adata.obs['batch'].cat.categories) > 1:
                 entropy_score = batch_entropy_mixing_score(adata.obsm['X_umap'], adata.obs['batch'])

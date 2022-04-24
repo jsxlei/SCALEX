@@ -27,7 +27,7 @@ import os
 import scanpy as sc
 
 
-def SCALE_v1(
+def SCALE(
         data_list, 
         batch_categories=None, 
         join='inner', 

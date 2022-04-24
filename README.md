@@ -2,7 +2,7 @@
 [![PyPI](https://img.shields.io/pypi/v/scalex.svg)](https://pypi.org/project/scalex)
 [![Documentation Status](https://readthedocs.org/projects/scalex/badge/?version=latest)](https://scalex.readthedocs.io/en/latest/?badge=stable)
 [![Downloads](https://pepy.tech/badge/scalex)](https://pepy.tech/project/scalex)
-# [Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v1)
+# [Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v2)
 
 ![](docs/source/_static/img/scalex.jpg)
 
@@ -29,12 +29,40 @@ SCALEX can both used under command line and API function in jupyter notebook
 
 
 ### 1. Command line
+#### Standard usage
+
 
     SCALEX.py --data_list data1 data2 dataN --batch_categories batch_name1 batch_name2 batch_nameN 
     
-``data_list``: data path of each batch of single-cell dataset  
+    
+`--data_list`: data path of each batch of single-cell dataset, use `-d` for short
 
-``batch_categories``: name of each batch, batch_categories will range from 0 to N if not specified
+`--batch_categories`: name of each batch, batch_categories will range from 0 to N if not specified
+
+    
+
+#### Use h5ad file storing `anndata` as input, one or multiple files
+
+    SCALEX.py --datalist <filename.h5ad>
+
+#### Specify batch in `anadata.obs` using `--batch_name` if only one concatenated h5ad file provided, batch_name can be e.g. conditions, samples, assays or patients, default is `batch`
+
+    SCALEX.py --datalist <filename.h5ad> --batch_name <specific_batch_name>
+    
+    
+#### Integrate heterogenous scATAC-seq datasets, add option `--profile` ATAC
+        
+    SCALEX.py --datalist <filename.h5ad> --profile ATAC
+    
+#### Inputation simultaneously along with Integration, add option `--impute`, results are stored at anndata.layers['impute']
+
+    SCALEX.py --datalist <atac_filename.h5ad> --profile ATAC --impute
+    
+    
+#### Custom features through `--n_top_features` a filename contains features in one column format read
+
+    SCALEX.py --datalist <filename.h5ad> --n_top_features features.txt
+    
     
 #### Option
 
@@ -42,6 +70,8 @@ SCALEX can both used under command line and API function in jupyter notebook
         A list of matrices file (each as a `batch`) or a single batch/batch-merged file.
 * --**batch_categories**  
         Categories for the batch annotation. By default, use increasing numbers if not given
+* --**batch_name**  
+        Use this annotation in anndata.obs as batches for training model. Default: 'batch'.
 * --**profile**  
         Specify the single-cell profile, RNA or ATAC. Default: RNA.
 * --**min_features**  
@@ -64,8 +94,6 @@ SCALEX can both used under command line and API function in jupyter notebook
         Use intersection ('inner') or union ('outer') of variables of different batches. 
 * --**batch_key**  
         Add the batch annotation to obs using this key. By default, batch_key='batch'.
-* --**batch_name**  
-        Use this annotation in obs as batches for training model. Default: 'batch'.
 * --**batch_size**  
         Number of samples per batch to load. Default: 64.
 * --**lr**  
@@ -112,19 +140,3 @@ Output is a Anndata object for further analysis with scanpy.
     
 ## [Tutorial](https://scalex.readthedocs.io/en/latest/tutorial/index.html) 
 
-
-## Previous version [SCALE](https://github.com/jsxlei/SCALE)
-
-Previous SCALE for single-cell ATAC-seq analysis is still available in SCALEX by command line (--version 1) or api (SCALE_v1).
-
-### Command line
-
-    SCALEX.py -d data --version 1
-    
-### API
-
-    from scalex.extensions import SCALE_v1
-    SCALE_v1(data)
-    
-    
-All the usage is the same with previous SCALE version 1.

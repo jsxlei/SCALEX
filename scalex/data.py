@@ -404,10 +404,13 @@ def reindex(adata, genes, chunk_size=CHUNK_SIZE):
     """
     idx = [i for i, g in enumerate(genes) if g in adata.var_names]
     print('There are {} gene in selected genes'.format(len(idx)))
-    new_X = scipy.sparse.csr_matrix((adata.shape[0], len(genes)))
-    for i in range(new_X.shape[0]//chunk_size+1):
-        new_X[i*chunk_size:(i+1)*chunk_size, idx] = adata[i*chunk_size:(i+1)*chunk_size, genes[idx]].X
-    adata = AnnData(new_X, obs=adata.obs, var={'var_names':genes}) 
+    if len(idx) == len(genes):
+        adata = adata[:, genes]
+    else:
+        new_X = scipy.sparse.csr_matrix((adata.shape[0], len(genes)))
+        for i in range(new_X.shape[0]//chunk_size+1):
+            new_X[i*chunk_size:(i+1)*chunk_size, idx] = adata[i*chunk_size:(i+1)*chunk_size, genes[idx]].X
+        adata = AnnData(new_X, obs=adata.obs, var={'var_names':genes}) 
     return adata
 
 
@@ -541,6 +544,12 @@ def load_data(
     if 'batch' not in adata.obs:
         adata.obs['batch'] = 'batch'
     adata.obs['batch'] = adata.obs['batch'].astype('category')
+    
+    if isinstance(n_top_features, str):
+        if os.path.isfile(n_top_features):
+            n_top_features = np.loadtxt(n_top_features, dtype=str)
+        else:
+            n_top_features = int(n_top_features)
     
     adata = preprocessing(
         adata, 

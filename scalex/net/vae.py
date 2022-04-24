@@ -90,7 +90,7 @@ class VAE(nn.Module):
         """
         self.to(device)
         if eval:
-            self.eval()
+            self.eval();print('eval mode')
         else:
             self.train()
         indices = np.zeros(dataloader.dataset.shape[0])
