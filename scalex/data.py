@@ -10,7 +10,7 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
-from scipy.sparse import issparse
+from scipy.sparse import issparse, csr
 
 import torch
 from torch.utils.data import Dataset
@@ -86,6 +86,9 @@ def load_file(path):
             adata = AnnData(df.values, dict(obs_names=df.index.values), dict(var_names=df.columns.values))
         elif path.endswith('.h5ad'):
             adata = sc.read_h5ad(path)
+    elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac'])):
+        import muon as mu
+        adata = mu.read(path)
     else:
         raise ValueError("File {} not exists".format(path))
         
@@ -160,7 +163,7 @@ def concat_data(
         batch_categories = list(map(str, range(len(adata_list))))
     else:
         assert len(adata_list) == len(batch_categories)
-    [print(b, adata.shape) for adata,b in zip(adata_list, batch_categories)]
+    # [print(b, adata.shape) for adata,b in zip(adata_list, batch_categories)]
     concat = AnnData.concatenate(*adata_list, join=join, batch_key=batch_key,
                                 batch_categories=batch_categories, index_unique=index_unique)  
     if save:
@@ -205,7 +208,8 @@ def preprocessing_rna(
     if n_top_features is None: n_top_features = 2000
     
     if log: log.info('Preprocessing')
-    if not issparse(adata.X):
+    # if not issparse(adata.X):
+    if type(adata.X) != csr.csr_matrix:
         adata.X = scipy.sparse.csr_matrix(adata.X)
     
     adata = adata[:, [gene for gene in adata.var_names 
@@ -275,7 +279,8 @@ def preprocessing_atac(
     if n_top_features is None: n_top_features = 30000
     
     if log: log.info('Preprocessing')
-    if not issparse(adata.X):
+    # if not issparse(adata.X):
+    if type(adata.X) != csr.csr_matrix:
         adata.X = scipy.sparse.csr_matrix(adata.X)
     
     adata.X[adata.X>1] = 1
@@ -310,7 +315,7 @@ def preprocessing(
         min_features: int = 600, 
         min_cells: int = 3, 
         target_sum: int = 10000, 
-        n_top_features = 2000, # or gene list
+        n_top_features = None, # or gene list
         chunk_size: int = CHUNK_SIZE,
         log=None
     ):

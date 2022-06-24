@@ -31,7 +31,7 @@ def SCALEX(
         batch_name='batch',
         min_features=600, 
         min_cells=3, 
-        n_top_features=2000, 
+        n_top_features=None, 
         batch_size=64, 
         lr=2e-4, 
         max_iteration=30000,
@@ -209,9 +209,9 @@ def SCALEX(
         color = [c for c in cols if c in adata.obs]
         if len(color) > 0:
             if projection and (not repeat):
-                embedding(adata, color='leiden', groupby='projection', save='.pdf', show=show)
+                embedding(adata, color='leiden', groupby='projection', save='.png', show=show)
             else:
-                sc.pl.umap(adata, color=color, save='.pdf', wspace=0.4, ncols=4, show=show)  
+                sc.pl.umap(adata, color=color, save='.png', wspace=0.4, ncols=4, show=show)  
         if assess:
             if len(adata.obs['batch'].cat.categories) > 1:
                 entropy_score = batch_entropy_mixing_score(adata.obsm['X_umap'], adata.obs['batch'])
