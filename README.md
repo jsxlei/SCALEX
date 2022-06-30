@@ -41,29 +41,33 @@ SCALEX can both used under command line and API function in jupyter notebook
 
     
 
-#### Use h5ad file storing `anndata` as input, one or multiple files
+#### Use h5ad file storing `anndata` as input, one or multiple separated files
 
-    SCALEX.py --datalist <filename.h5ad>
+    SCALEX.py --data_list <filename.h5ad>
 
 #### Specify batch in `anadata.obs` using `--batch_name` if only one concatenated h5ad file provided, batch_name can be e.g. conditions, samples, assays or patients, default is `batch`
 
-    SCALEX.py --datalist <filename.h5ad> --batch_name <specific_batch_name>
+    SCALEX.py --data_list <filename.h5ad> --batch_name <specific_batch_name>
     
     
 #### Integrate heterogenous scATAC-seq datasets, add option `--profile` ATAC
         
-    SCALEX.py --datalist <filename.h5ad> --profile ATAC
+    SCALEX.py --data_list <filename.h5ad> --profile ATAC
     
 #### Inputation simultaneously along with Integration, add option `--impute`, results are stored at anndata.layers['impute']
 
-    SCALEX.py --datalist <atac_filename.h5ad> --profile ATAC --impute
+    SCALEX.py --data_list <atac_filename.h5ad> --profile ATAC --impute
     
     
 #### Custom features through `--n_top_features` a filename contains features in one column format read
 
-    SCALEX.py --datalist <filename.h5ad> --n_top_features features.txt
+    SCALEX.py --data_list <filename.h5ad> --n_top_features features.txt
     
     
+#### Use preprocessed data `--processed`
+
+    SCALEX.py --data_list <filename.h5ad> --processed
+
 #### Option
 
 * --**data_list**  

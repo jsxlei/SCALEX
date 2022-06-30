@@ -154,9 +154,15 @@ def concat_data(
         return load_files(data_list[0])
     elif isinstance(data_list, str):
         return load_files(data_list)
+    elif isinstance(data_list, AnnData):
+        return data_list
+
     adata_list = []
     for root in data_list:
-        adata = load_files(root)
+        if isinstance(root, AnnData):
+            adata = root
+        else:
+            adata = load_files(root)
         adata_list.append(adata)
         
     if batch_categories is None:
@@ -206,6 +212,7 @@ def preprocessing_rna(
     """
     if min_features is None: min_features = 600
     if n_top_features is None: n_top_features = 2000
+    if target_sum is None: target_sum = 10000
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
@@ -245,7 +252,7 @@ def preprocessing_atac(
         min_features: int = 100, 
         min_cells: int = 3, 
         target_sum=None, 
-        n_top_features = 30000, # or gene list
+        n_top_features = 100000, # or gene list
         chunk_size: int = CHUNK_SIZE,
         log=None
     ):
@@ -276,7 +283,8 @@ def preprocessing_atac(
     import episcanpy as epi
     
     if min_features is None: min_features = 100
-    if n_top_features is None: n_top_features = 30000
+    if n_top_features is None: n_top_features = 100000
+    if target_sum is None: target_sum = 10000
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
@@ -294,13 +302,15 @@ def preprocessing_atac(
 #     adata.raw = adata
     if log: log.info('Finding variable features')
     if type(n_top_features) == int and n_top_features>0:
-        epi.pp.select_var_feature(adata, nb_features=n_top_features, show=False, copy=False)
+        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch', inplace=False, subset=True)
+        # epi.pp.select_var_feature(adata, nb_features=n_top_features, show=False, copy=False)
     elif type(n_top_features) != int:
         adata = reindex(adata, n_top_features)
 
     
-    if log: log.info('Normalizing total per cell')
-    sc.pp.normalize_total(adata, target_sum=target_sum)
+    # if log: log.info('Normalizing total per cell')
+    # if target_sum != -1:
+        # sc.pp.normalize_total(adata, target_sum=target_sum)
 
         
     if log: log.info('Batch specific maxabs scaling')
@@ -314,7 +324,7 @@ def preprocessing(
         profile: str='RNA',
         min_features: int = 600, 
         min_cells: int = 3, 
-        target_sum: int = 10000, 
+        target_sum: int = None, 
         n_top_features = None, # or gene list
         chunk_size: int = CHUNK_SIZE,
         log=None
@@ -351,6 +361,7 @@ def preprocessing(
                    adata, 
                    min_features=min_features, 
                    min_cells=min_cells, 
+                   target_sum=target_sum,
                    n_top_features=n_top_features, 
                    chunk_size=chunk_size, 
                    log=log
@@ -360,11 +371,13 @@ def preprocessing(
                    adata, 
                    min_features=min_features, 
                    min_cells=min_cells, 
+                   target_sum=target_sum,
                    n_top_features=n_top_features, 
                    chunk_size=chunk_size, 
                    log=log
                )
-    
+    else:
+        raise ValueError("Not support profile: `{}` yet".format(profile))
 
 def batch_scale(adata, chunk_size=CHUNK_SIZE):
     """
@@ -500,9 +513,11 @@ def load_data(
         batch_name='batch',
         min_features=600, 
         min_cells=3, 
-        n_top_features=2000, 
+        target_sum=None,
+        n_top_features=None, 
         batch_size=64, 
         chunk_size=CHUNK_SIZE,
+        processed=False,
         log=None,
     ):
     """
@@ -556,15 +571,17 @@ def load_data(
         else:
             n_top_features = int(n_top_features)
     
-    adata = preprocessing(
-        adata, 
-        profile=profile,
-        min_features=min_features, 
-        min_cells=min_cells, 
-        n_top_features=n_top_features,
-        chunk_size=chunk_size,
-        log=log,
-    )
+    if not processed:
+        adata = preprocessing(
+            adata, 
+            profile=profile,
+            min_features=min_features, 
+            min_cells=min_cells, 
+            target_sum=target_sum,
+            n_top_features=n_top_features,
+            chunk_size=chunk_size,
+            log=log,
+        )
     scdata = SingleCellDataset(adata) # Wrap AnnData into Pytorch Dataset
     trainloader = DataLoader(
         scdata, 
