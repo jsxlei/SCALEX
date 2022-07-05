@@ -8,17 +8,22 @@
 
 
 ## [Documentation](https://scalex.readthedocs.io/en/latest/index.html) 
-
+## [Tutorial](https://scalex.readthedocs.io/en/latest/tutorial/index.html) 
 ## Installation  	
 #### install from PyPI
 
     pip install scalex
     
 #### install from GitHub
+install the latest develop version
 
-	git clone git://github.com/jsxlei/scalex.git
-	cd scalex
-	python setup.py install
+    pip install git+https://github.com/jsxlei/scalex.git
+
+or git clone and install
+
+    git clone git://github.com/jsxlei/scalex.git
+    cd scalex
+    python setup.py install
     
 SCALEX is implemented in [Pytorch](https://pytorch.org/) framework.  
 SCALEX can be run on CPU devices, and running SCALEX on GPU devices if available is recommended.   
@@ -28,7 +33,16 @@ SCALEX can be run on CPU devices, and running SCALEX on GPU devices if available
 SCALEX can both used under command line and API function in jupyter notebook
 
 
-### 1. Command line
+### 1. API function
+
+    from scalex import SCALEX
+    adata = SCALEX(data_list, batch_categories)
+    
+Function of parameters are similar to command line options.
+Output is a Anndata object for further analysis with scanpy.
+data_list can be data_path, list of data_path, Anndata or list of AnnData or mixed.
+
+### 2. Command line
 #### Standard usage
 
 
@@ -40,7 +54,14 @@ SCALEX can both used under command line and API function in jupyter notebook
 `--batch_categories`: name of each batch, batch_categories will range from 0 to N if not specified
 
     
+#### Output
+Output will be saved in the output folder including:
+* **checkpoint**:  saved model to reproduce results cooperated with option --checkpoint or -c
+* **[adata.h5ad](https://anndata.readthedocs.io/en/stable/anndata.AnnData.html#anndata.AnnData)**:  preprocessed data and results including, latent, clustering and imputation
+* **umap.png**:  UMAP visualization of latent representations of cells 
+* **log.txt**:  log file of training process
 
+### Other Common Usage
 #### Use h5ad file storing `anndata` as input, one or multiple separated files
 
     SCALEX.py --data_list <filename.h5ad>
@@ -112,19 +133,6 @@ SCALEX can both used under command line and API function in jupyter notebook
         Verbosity, True or False. Default: False.
     
 
-#### Output
-Output will be saved in the output folder including:
-* **checkpoint**:  saved model to reproduce results cooperated with option --checkpoint or -c
-* **[adata.h5ad](https://anndata.readthedocs.io/en/stable/anndata.AnnData.html#anndata.AnnData)**:  preprocessed data and results including, latent, clustering and imputation
-* **umap.png**:  UMAP visualization of latent representations of cells 
-* **log.txt**:  log file of training process
-
-     
-#### Useful options  
-* output folder for saveing results: [-o] or [--outdir] 
-* filter rare genes, default 3: [--min_cells]
-* filter low quality cells, default 600: [--min_features]  
-* select the number of highly variable genes, keep all genes with -1, default 2000: [--n_top_featuress]
 	
     
 #### Help
@@ -133,14 +141,8 @@ Look for more usage of SCALEX
 	SCALEX.py --help 
     
     
-### 2. API function
 
-    from scalex import SCALEX
-    adata = SCALEX(data_list, batch_categories)
-    
-Function of parameters are similar to command line options.
-Output is a Anndata object for further analysis with scanpy.
     
     
-## [Tutorial](https://scalex.readthedocs.io/en/latest/tutorial/index.html) 
+
 
