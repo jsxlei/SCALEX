@@ -2,6 +2,7 @@
 [![PyPI](https://img.shields.io/pypi/v/scalex.svg)](https://pypi.org/project/scalex)
 [![Documentation Status](https://readthedocs.org/projects/scalex/badge/?version=latest)](https://scalex.readthedocs.io/en/latest/?badge=stable)
 [![Downloads](https://pepy.tech/badge/scalex)](https://pepy.tech/project/scalex)
+[![DOI](https://zenodo.org/badge/345941713.svg)](https://zenodo.org/badge/latestdoi/345941713)
 # [Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v2)
 
 ![](docs/source/_static/img/scalex.jpg)
