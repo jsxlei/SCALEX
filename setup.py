@@ -36,7 +36,7 @@ def get_version(rel_path):
 setup(name='scalex',
       version=get_version(HERE / "scalex/__init__.py"),
       packages=find_packages(),
-      description='Construction of continuously expandable single-cell atlases through integration of heterogeneous datasets in a generalized cell-embedding space',
+      description='Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space',
       long_description=README,
 
       author='Lei Xiong',

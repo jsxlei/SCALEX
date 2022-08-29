@@ -1,5 +1,5 @@
-1.0.0 :small:`2019-10-01`
+1.0.0 :small:`2022-08-29`
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SCALE: Single-cell ATAC-seq analysis via Latent feature Extraction
+Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
 

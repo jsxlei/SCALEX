@@ -1,5 +1,0 @@
-2.0.0 :small:`2020-10-01`
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-SCALE v2: Single-cell integrative Analysis via Latent feature Extraction

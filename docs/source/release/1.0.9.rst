@@ -1,7 +1,0 @@
-1.0.9 :small:`2020-02-01`
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-SCALE: Single-cell ATAC-seq analysis via Latent feature Extraction
-
-Feature: Compatible with Scanpy
