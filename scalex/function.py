@@ -126,7 +126,7 @@ def SCALEX(
     
     outdir = outdir+'/'
     os.makedirs(outdir+'/checkpoint', exist_ok=True)
-    log = create_logger('', fh=outdir+'log.txt')
+    log = create_logger('SCALEX', fh=outdir+'log.txt', overwrite=True)
     if not projection:
         adata, trainloader, testloader = load_data(
             data_list, batch_categories, 
