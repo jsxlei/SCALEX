@@ -10,9 +10,13 @@
 
 import logging
 
-def create_logger(name='', ch=True, fh='', levelname=logging.INFO):
+def create_logger(name='', ch=True, fh='', levelname=logging.INFO, overwrite=False):
     logger = logging.getLogger(name)
     logger.setLevel(levelname)
+    
+    if overwrite:
+        for h in logger.handlers:
+            logger.removeHandler(h)
     
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # handler 
