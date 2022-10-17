@@ -56,8 +56,12 @@ Use SCALEX in jupyter notebook::
 
     from scalex.function import SCALEX
     adata = SCALEX(data_list, batch_categories)
+
+or 
+    adata = SCALEX([adata_1, adata_2])
     
-Function of parameters are similar to command line options.
+Function of parameters are similar to command line options. 
+Input can be the files of adata or a list of AnnData or one concatenated AnnData 
 Output is a Anndata object for further analysis with scanpy.
     
 

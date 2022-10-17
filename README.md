@@ -3,7 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/scalex/badge/?version=latest)](https://scalex.readthedocs.io/en/latest/?badge=stable)
 [![Downloads](https://pepy.tech/badge/scalex)](https://pepy.tech/project/scalex)
 [![DOI](https://zenodo.org/badge/345941713.svg)](https://zenodo.org/badge/latestdoi/345941713)
-# [Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space](https://www.biorxiv.org/content/10.1101/2021.04.06.438536v2)
+# [Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space](https://www.nature.com/articles/s41467-022-33758-z)
 
 ![](docs/source/_static/img/scalex.jpg)
 
@@ -39,9 +39,16 @@ SCALEX can both used under command line and API function in jupyter notebook
     from scalex import SCALEX
     adata = SCALEX(data_list, batch_categories)
     
-Function of parameters are similar to command line options.
-Output is a Anndata object for further analysis with scanpy.
-data_list can be data_path, list of data_path, Anndata or list of AnnData or mixed.
+Function of parameters are similar to command line options.  
+Output is a Anndata object for further analysis with scanpy.  
+`data_list` can be 
+* data_path, file format included txt, csv, h5ad, h5mu/rna, h5mu/atac, dir contains mtx
+* list of data_paths
+* [Anndata]((https://anndata.readthedocs.io/en/stable/anndata.AnnData.html#anndata.AnnData))
+* list of [AnnData]((https://anndata.readthedocs.io/en/stable/anndata.AnnData.html#anndata.AnnData))
+* above mixed
+
+`batch_categories` is optional, name of each batch, will be range from 0 to N-1 if not provided
 
 ### 2. Command line
 #### Standard usage
@@ -52,7 +59,7 @@ data_list can be data_path, list of data_path, Anndata or list of AnnData or mix
     
 `--data_list`: data path of each batch of single-cell dataset, use `-d` for short
 
-`--batch_categories`: name of each batch, batch_categories will range from 0 to N if not specified
+`--batch_categories`: name of each batch, batch_categories will range from 0 to N-1 if not specified
 
     
 #### Output
