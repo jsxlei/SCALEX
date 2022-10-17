@@ -7,6 +7,8 @@
 
 ![](docs/source/_static/img/scalex.jpg)
 
+## News
+#### [2022-10-17] SCALEX is online at [Nature Communications](https://www.nature.com/articles/s41467-022-33758-z)
 
 ## [Documentation](https://scalex.readthedocs.io/en/latest/index.html) 
 ## [Tutorial](https://scalex.readthedocs.io/en/latest/tutorial/index.html) 
