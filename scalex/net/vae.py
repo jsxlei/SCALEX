@@ -104,10 +104,12 @@ class VAE(nn.Module):
                 indices[idx] = idx
         elif out == 'impute':
             output = np.zeros((dataloader.dataset.shape[0], self.x_dim))
-            if batch_id is None:
-                batch_id = 0
-            else:
+
+            if batch_id in dataloader.dataset.adata.obs['batch'].cat.categories:
                 batch_id = list(dataloader.dataset.adata.obs['batch'].cat.categories).index(batch_id)
+            else:
+                batch_id = 0
+
             for x,y,idx in dataloader:
                 x = x.float().to(device)
                 z = self.encoder(x)[1] # z, mu, var
