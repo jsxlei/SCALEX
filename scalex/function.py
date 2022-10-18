@@ -53,7 +53,7 @@ def SCALEX(
         test_batch_categories=None,
     ):
     """
-    Single-Cell integrative Analysis via Latent feature Extraction
+    Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
     
     Parameters
     ----------
@@ -201,12 +201,14 @@ def SCALEX(
             batch_key='projection', 
             index_unique=None
         )
-    adata.write(outdir+'adata.h5ad', compression='gzip')  
+    if outdir is not None:
+        adata.write(outdir+'adata.h5ad', compression='gzip')  
     if not ignore_umap: #and adata.shape[0]<1e6:
         log.info('Plot umap')
         sc.pp.neighbors(adata, n_neighbors=30, use_rep='latent')
         sc.tl.umap(adata, min_dist=0.1)
         sc.tl.leiden(adata)
+        adata.obsm['X_scalex_umap'] = adata.obsm['X_umap']
         
         # UMAP visualization
         sc.settings.figdir = outdir
@@ -227,7 +229,8 @@ def SCALEX(
                 sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs['celltype'].cat.codes)
                 log.info("silhouette_score: {:.3f}".format(sil_score))
 
-    adata.write(outdir+'adata.h5ad', compression='gzip')
+    if outdir is not None:
+        adata.write(outdir+'adata.h5ad', compression='gzip')
     
     return adata
         
