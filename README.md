@@ -87,7 +87,7 @@ Output will be saved in the output folder including:
     
 #### Inputation simultaneously along with Integration, add option `--impute`, results are stored at anndata.layers['impute']
 
-    SCALEX.py --data_list <atac_filename.h5ad> --profile ATAC --impute
+    SCALEX.py --data_list <atac_filename.h5ad> --profile ATAC --impute True
     
     
 #### Custom features through `--n_top_features` a filename contains features in one column format read

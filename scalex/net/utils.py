@@ -83,7 +83,8 @@ class EarlyStopping:
         '''
         if self.verbose:
             print(f'Loss decreased ({self.loss_min:.6f} --> {loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), self.checkpoint_file)
+        if self.checkpoint_file:
+            torch.save(model.state_dict(), self.checkpoint_file)
         self.loss_min = loss
         
     

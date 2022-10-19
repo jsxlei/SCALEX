@@ -564,6 +564,7 @@ def load_data(
     if 'batch' not in adata.obs:
         adata.obs['batch'] = 'batch'
     adata.obs['batch'] = adata.obs['batch'].astype('category')
+    if log: log.info('There are {} batches under batch_name: {}'.format(len(adata.obs['batch'].cat.categories), batch_name))
     
     if isinstance(n_top_features, str):
         if os.path.isfile(n_top_features):

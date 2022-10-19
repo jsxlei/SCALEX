@@ -10,7 +10,7 @@
 
 import logging
 
-def create_logger(name='', ch=True, fh='', levelname=logging.INFO, overwrite=False):
+def create_logger(name='', ch=True, fh=False, levelname=logging.INFO, overwrite=False):
     logger = logging.getLogger(name)
     logger.setLevel(levelname)
     

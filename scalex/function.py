@@ -39,7 +39,7 @@ def SCALEX(
         max_iteration=30000,
         seed=124, 
         gpu=0, 
-        outdir='output/', 
+        outdir=None, 
         projection=None,
         repeat=False,
         impute=None, 
@@ -124,9 +124,13 @@ def SCALEX(
     else:
         device='cpu'
     
-    outdir = outdir+'/'
-    os.makedirs(outdir+'/checkpoint', exist_ok=True)
-    log = create_logger('SCALEX', fh=outdir+'log.txt', overwrite=True)
+    if outdir:
+        outdir = outdir+'/'
+        os.makedirs(outdir+'/checkpoint', exist_ok=True)
+        log = create_logger('SCALEX', fh=outdir+'log.txt', overwrite=True)
+    else:
+        log = create_logger('SCALEX')
+
     if not projection:
         adata, trainloader, testloader = load_data(
             data_list, batch_categories, 
@@ -144,7 +148,7 @@ def SCALEX(
             log=log,
         )
         
-        early_stopping = EarlyStopping(patience=10, checkpoint_file=outdir+'/checkpoint/model.pt')
+        early_stopping = EarlyStopping(patience=10, checkpoint_file=outdir+'/checkpoint/model.pt' if outdir else None)
         x_dim, n_domain = adata.shape[1], len(adata.obs['batch'].cat.categories)
         
         # model config
@@ -153,7 +157,7 @@ def SCALEX(
 
         model = VAE(enc, dec, n_domain=n_domain)
         
-        log.info('model\n'+model.__repr__())
+        # log.info('model\n'+model.__repr__())
         model.fit(
             trainloader, 
             lr=lr, 
@@ -162,7 +166,8 @@ def SCALEX(
             early_stopping=early_stopping, 
             verbose=verbose,
         )
-        torch.save({'n_top_features':adata.var.index, 'enc':enc, 'dec':dec, 'n_domain':n_domain}, outdir+'/checkpoint/config.pt')     
+        if outdir:
+            torch.save({'n_top_features':adata.var.index, 'enc':enc, 'dec':dec, 'n_domain':n_domain}, outdir+'/checkpoint/config.pt')
     else:
         state = torch.load(projection+'/checkpoint/config.pt')
         n_top_features, enc, dec, n_domain = state['n_top_features'], state['enc'], state['dec'], state['n_domain']
@@ -189,7 +194,7 @@ def SCALEX(
     adata.obsm['latent'] = model.encodeBatch(testloader, device=device, eval=eval) # save latent rep
     if impute:
         adata.layers['impute'] = model.encodeBatch(testloader, out='impute', batch_id=impute, device=device, eval=eval)
-    log.info('Output dir: {}'.format(outdir))
+    # log.info('Output dir: {}'.format(outdir))
     
     model.to('cpu')
     del model
@@ -201,8 +206,10 @@ def SCALEX(
             batch_key='projection', 
             index_unique=None
         )
+
     if outdir is not None:
         adata.write(outdir+'adata.h5ad', compression='gzip')  
+
     if not ignore_umap: #and adata.shape[0]<1e6:
         log.info('Plot umap')
         sc.pp.neighbors(adata, n_neighbors=30, use_rep='latent')
@@ -211,15 +218,20 @@ def SCALEX(
         adata.obsm['X_scalex_umap'] = adata.obsm['X_umap']
         
         # UMAP visualization
-        sc.settings.figdir = outdir
         sc.set_figure_params(dpi=80, figsize=(3,3))
-        cols = ['batch', 'celltype', 'leiden']
+        cols = ['batch', 'celltype', 'cell_type', 'leiden']
         color = [c for c in cols if c in adata.obs]
+        if outdir:
+            sc.settings.figdir = outdir
+            save = '.png'
+        else:
+            save = None
+
         if len(color) > 0:
             if projection and (not repeat):
-                embedding(adata, color='leiden', groupby='projection', save='.png', show=show)
+                embedding(adata, color='leiden', groupby='projection', save=save, show=show)
             else:
-                sc.pl.umap(adata, color=color, save='.png', wspace=0.4, ncols=4, show=show)  
+                sc.pl.umap(adata, color=color, save=save, wspace=0.4, ncols=4, show=show)  
         if assess:
             if len(adata.obs['batch'].cat.categories) > 1:
                 entropy_score = batch_entropy_mixing_score(adata.obsm['X_umap'], adata.obs['batch'])
