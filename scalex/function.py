@@ -13,6 +13,7 @@ import numpy as np
 import os
 import scanpy as sc
 from anndata import AnnData
+from typing import Union, List
 
 from .data import load_data
 from .net.vae import VAE
@@ -23,35 +24,33 @@ from .plot import embedding
 
 
 def SCALEX(
-        data_list=None, 
-        batch_categories=None,
-        profile='RNA',
-        join='inner', 
-        batch_key='batch', 
-        batch_name='batch',
-        min_features=600, 
-        min_cells=3, 
-        target_sum=None,
-        n_top_features=None, 
-        processed=False,
-        batch_size=64, 
-        lr=2e-4, 
-        max_iteration=30000,
-        seed=124, 
-        gpu=0, 
-        outdir=None, 
-        projection=None,
-        repeat=False,
-        impute=None, 
-        chunk_size=20000,
-        ignore_umap=False,
-        verbose=False,
-        assess=False,
-        show=True,
-        eval=False,
-        test_list=None,
-        test_batch_categories=None,
-    ):
+        data_list:Union[str, AnnData, List]=None, 
+        batch_categories:List=None,
+        profile:str='RNA',
+        batch_name:str='batch',
+        min_features:int=600, 
+        min_cells:int=3, 
+        target_sum:int=None,
+        n_top_features:int=None,
+        join:str='inner', 
+        batch_key:str='batch',  
+        processed:bool=False,
+        batch_size:int=64, 
+        lr:float=2e-4, 
+        max_iteration:int=30000,
+        seed:int=124, 
+        gpu:int=0, 
+        outdir:str=None, 
+        projection:str=None,
+        repeat:bool=False,
+        impute:str=None, 
+        chunk_size:int=20000,
+        ignore_umap:bool=False,
+        verbose:bool=False,
+        assess:bool=False,
+        show:bool=True,
+        eval:bool=False,
+    ) -> AnnData:
     """
     Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
     
@@ -63,10 +62,6 @@ def SCALEX(
         Categories for the batch annotation. By default, use increasing numbers.
     profile
         Specify the single-cell profile, RNA or ATAC. Default: RNA.
-    join
-        Use intersection ('inner') or union ('outer') of variables of different batches. 
-    batch_key
-        Add the batch annotation to obs using this key. By default, batch_key='batch'.
     batch_name
         Use this annotation in obs as batches for training model. Default: 'batch'.
     min_features
@@ -75,6 +70,10 @@ def SCALEX(
         Filtered out genes that are detected in less than min_cells. Default: 3.
     n_top_features
         Number of highly-variable genes to keep. Default: 2000.
+    join
+        Use intersection ('inner') or union ('outer') of variables of different batches. 
+    batch_key
+        Add the batch annotation to obs using this key. By default, batch_key='batch'.
     batch_size
         Number of samples per batch to load. Default: 64.
     lr
