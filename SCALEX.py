@@ -78,7 +78,6 @@ if __name__ == '__main__':
         verbose=True,
         assess=args.assess,
         eval=args.eval,
-        test_list=args.test_list,
         show=False,
     )
         
