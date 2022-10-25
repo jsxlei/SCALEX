@@ -114,7 +114,8 @@ class VAE(nn.Module):
                 x = x.float().to(device)
                 z = self.encoder(x)[1] # z, mu, var
                 output[idx] = self.decoder(z, torch.LongTensor([batch_id]*len(z))).detach().cpu().numpy()
-        indices = np.zeros(dataloader.dataset.shape[0])
+                indices[idx] = idx
+
         if return_idx:
             return output, indices
         else:
