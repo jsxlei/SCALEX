@@ -124,9 +124,9 @@ def SCALEX(
         device='cpu'
     
     if outdir:
-        outdir = outdir+'/'
-        os.makedirs(outdir+'/checkpoint', exist_ok=True)
-        log = create_logger('SCALEX', fh=outdir+'log.txt', overwrite=True)
+        # outdir = outdir+'/'
+        os.makedirs(os.path.join(outdir, 'checkpoint'), exist_ok=True)
+        log = create_logger('SCALEX', fh=os.path.join(outdir, 'log.txt'), overwrite=True)
     else:
         log = create_logger('SCALEX')
 
@@ -147,7 +147,7 @@ def SCALEX(
             log=log,
         )
         
-        early_stopping = EarlyStopping(patience=10, checkpoint_file=outdir+'/checkpoint/model.pt' if outdir else None)
+        early_stopping = EarlyStopping(patience=10, checkpoint_file=os.path.join(outdir, 'checkpoint/model.pt') if outdir else None)
         x_dim, n_domain = adata.shape[1], len(adata.obs['batch'].cat.categories)
         
         # model config
@@ -166,12 +166,12 @@ def SCALEX(
             verbose=verbose,
         )
         if outdir:
-            torch.save({'n_top_features':adata.var.index, 'enc':enc, 'dec':dec, 'n_domain':n_domain}, outdir+'/checkpoint/config.pt')
+            torch.save({'n_top_features':adata.var.index, 'enc':enc, 'dec':dec, 'n_domain':n_domain}, os.path.join(outdir, 'checkpoint/config.pt'))
     else:
-        state = torch.load(projection+'/checkpoint/config.pt')
+        state = torch.load(os.path.join(projection, 'checkpoint/config.pt'))
         n_top_features, enc, dec, n_domain = state['n_top_features'], state['enc'], state['dec'], state['n_domain']
         model = VAE(enc, dec, n_domain=n_domain)
-        model.load_model(projection+'/checkpoint/model.pt')
+        model.load_model(os.path.join(projection, 'checkpoint/model.pt'))
         model.to(device)
         
         adata, trainloader, testloader = load_data(
@@ -198,7 +198,7 @@ def SCALEX(
     model.to('cpu')
     del model
     if projection and (not repeat):
-        ref = sc.read_h5ad(projection+'/adata.h5ad')
+        ref = sc.read_h5ad(os.path.join(projection, 'adata.h5ad'))
         adata = AnnData.concatenate(
             ref, adata, 
             batch_categories=['reference', 'query'], 
@@ -207,7 +207,7 @@ def SCALEX(
         )
 
     if outdir is not None:
-        adata.write(outdir+'adata.h5ad', compression='gzip')  
+        adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')  
 
     if not ignore_umap: #and adata.shape[0]<1e6:
         log.info('Plot umap')
@@ -241,7 +241,7 @@ def SCALEX(
                 log.info("silhouette_score: {:.3f}".format(sil_score))
 
     if outdir is not None:
-        adata.write(outdir+'adata.h5ad', compression='gzip')
+        adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')
     
     return adata
         
