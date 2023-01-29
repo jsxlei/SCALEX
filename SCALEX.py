@@ -27,6 +27,8 @@ if __name__ == '__main__':
     parser.add_argument('--n_top_features', default=None)
     parser.add_argument('--target_sum', type=int, default=None)
     parser.add_argument('--processed', action='store_true', default=False)
+    parser.add_argument('--fraction', type=float, default=None)
+    parser.add_argument('--n_obs', type=int, default=None)
 
     parser.add_argument('--projection', '-p', default=None)
     parser.add_argument('--impute', type=str, default=None)
@@ -62,6 +64,8 @@ if __name__ == '__main__':
         min_cells=args.min_cells, 
         target_sum=args.target_sum,
         n_top_features=args.n_top_features, 
+        fraction=args.fraction,
+        n_obs=args.n_obs,
         processed=args.processed,
         batch_size=args.batch_size, 
         lr=args.lr, 

@@ -192,7 +192,7 @@ def preprocessing_rna(
     Parameters
     ----------
     adata
-        An AnnData matrice of shape n_obs × n_vars. Rows correspond to cells and columns to genes.
+        An AnnData matrice of shape n_obs x n_vars. Rows correspond to cells and columns to genes.
     min_features
         Filtered out cells that are detected in less than n genes. Default: 600.
     min_cells
@@ -262,7 +262,7 @@ def preprocessing_atac(
     Parameters
     ----------
     adata
-        An AnnData matrice of shape n_obs × n_vars. Rows correspond to cells and columns to genes.
+        An AnnData matrice of shape n_obs x n_vars. Rows correspond to cells and columns to genes.
     min_features
         Filtered out cells that are detected in less than n genes. Default: 100.
     min_cells
@@ -301,20 +301,22 @@ def preprocessing_atac(
     
 #     adata.raw = adata
     if log: log.info('Finding variable features')
-    if type(n_top_features) == int and n_top_features>0:
-        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch', inplace=False, subset=True)
-        # epi.pp.select_var_feature(adata, nb_features=n_top_features, show=False, copy=False)
+    if type(n_top_features) == int and n_top_features>0 and n_top_features < adata.shape[1]:
+        # sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch', inplace=False, subset=True)
+        epi.pp.select_var_feature(adata, nb_features=n_top_features, show=False, copy=False)
     elif type(n_top_features) != int:
         adata = reindex(adata, n_top_features)
 
     
     # if log: log.info('Normalizing total per cell')
     # if target_sum != -1:
-        # sc.pp.normalize_total(adata, target_sum=target_sum)
+    sc.pp.normalize_total(adata, target_sum=target_sum)
 
         
-    if log: log.info('Batch specific maxabs scaling')
-    adata = batch_scale(adata, chunk_size=chunk_size)
+    # if log: log.info('Batch specific maxabs scaling')
+#    adata = batch_scale(adata, chunk_size=chunk_size)
+    # adata.X = maxabs_scale(adata.X)
+    adata.X = MaxAbsScaler().fit_transform(adata.X)
     if log: log.info('Processed dataset shape: {}'.format(adata.shape))
     return adata
 
@@ -335,7 +337,7 @@ def preprocessing(
     Parameters
     ----------
     adata
-        An AnnData matrice of shape n_obs × n_vars. Rows correspond to cells and columns to genes.
+        An AnnData matrice of shape n_obs x n_vars. Rows correspond to cells and columns to genes.
     profile
         Specify the single-cell profile type, RNA or ATAC, Default: RNA.
     min_features
@@ -426,8 +428,9 @@ def reindex(adata, genes, chunk_size=CHUNK_SIZE):
         adata = adata[:, genes]
     else:
         new_X = scipy.sparse.lil_matrix((adata.shape[0], len(genes)))
-        for i in range(new_X.shape[0]//chunk_size+1):
-            new_X[i*chunk_size:(i+1)*chunk_size, idx] = adata[i*chunk_size:(i+1)*chunk_size, genes[idx]].X
+        new_X[:, idx] = adata[:, genes[idx]].X
+        # for i in range(new_X.shape[0]//chunk_size+1):
+            # new_X[i*chunk_size:(i+1)*chunk_size, idx] = adata[i*chunk_size:(i+1)*chunk_size, genes[idx]].X
         adata = AnnData(new_X.tocsr(), obs=adata.obs, var={'var_names':genes}) 
     return adata
 
@@ -517,6 +520,8 @@ def load_data(
         n_top_features=None, 
         batch_size=64, 
         chunk_size=CHUNK_SIZE,
+        fraction=None,
+        n_obs=None,
         processed=False,
         log=None,
     ):
@@ -572,6 +577,9 @@ def load_data(
         else:
             n_top_features = int(n_top_features)
     
+    if n_obs is not None or fraction is not None:
+        sc.pp.subsample(adata, fraction=fraction, n_obs=n_obs)
+
     if not processed:
         adata = preprocessing(
             adata, 
