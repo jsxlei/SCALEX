@@ -565,7 +565,11 @@ def load_data(
     adata = concat_data(data_list, batch_categories, join=join, batch_key=batch_key)
     if log: log.info('Raw dataset shape: {}'.format(adata.shape))
     if batch_name!='batch':
-        adata.obs['batch'] = adata.obs[batch_name]
+        if ',' in batch_name:
+            names = batch_name.split(',')
+            adata.obs['batch'] = adata.obs[names[0]].astype(str)+'_'+adata.obs[names[1]].astype(str)
+        else:
+            adata.obs['batch'] = adata.obs[batch_name]
     if 'batch' not in adata.obs:
         adata.obs['batch'] = 'batch'
     adata.obs['batch'] = adata.obs['batch'].astype('category')
