@@ -502,7 +502,10 @@ class SingleCellDataset(Dataset):
         return self.adata.X.shape[0]
     
     def __getitem__(self, idx):
-        x = self.adata.X[idx].toarray().squeeze()
+        if isinstance(self.adata.X[idx], np.ndarray):
+            x = self.adata.X[idx].squeeze()
+        else:
+            x = self.adata.X[idx].toarray().squeeze()
         domain_id = self.adata.obs['batch'].cat.codes[idx]
         return x, domain_id, idx
 
