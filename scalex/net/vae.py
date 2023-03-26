@@ -159,6 +159,7 @@ class VAE(nn.Module):
             for epoch in tq:
                 tk0 = tqdm(enumerate(dataloader), total=len(dataloader), leave=False, desc='Iterations', disable=(not verbose))
                 epoch_loss = defaultdict(float)
+                acc = []
                 for i, (x, y, idx) in tk0:
                     x, y = x.float().to(device), y.long().to(device)
 
@@ -168,6 +169,7 @@ class VAE(nn.Module):
                     recon_loss = F.binary_cross_entropy(recon_x, x) * x.size(-1)  ## TO DO
                     kl_loss = kl_div(mu, var) 
             
+                    # acc.append(pearson_corr_coef(recon_x, x))
                     loss = {'recon_loss':recon_loss, 'kl_loss':0.5*kl_loss} 
                     
                     optim.zero_grad()
@@ -183,6 +185,7 @@ class VAE(nn.Module):
 
                 epoch_loss = {k:v/(i+1) for k, v in epoch_loss.items()}
                 epoch_info = ','.join(['{}={:.3f}'.format(k, v) for k,v in epoch_loss.items()])
+                # epoch_info += ',acc={:.3f}'.format(torch.Tensor(acc).mean().item())
                 tq.set_postfix_str(epoch_info) 
                     
                 early_stopping(sum(epoch_loss.values()), self)
@@ -191,4 +194,7 @@ class VAE(nn.Module):
                     break       
                     
         
-                
+def pearson_corr_coef(x, y, dim = 1, reduce_dims = (-1,)):
+    x_centered = x - x.mean(dim = dim, keepdim = True)
+    y_centered = y - y.mean(dim = dim, keepdim = True)
+    return F.cosine_similarity(x_centered, y_centered, dim = dim).mean(dim = reduce_dims)

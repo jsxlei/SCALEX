@@ -86,9 +86,24 @@ def load_file(path):
             adata = AnnData(df.values, dict(obs_names=df.index.values), dict(var_names=df.columns.values))
         elif path.endswith('.h5ad'):
             adata = sc.read_h5ad(path)
+        elif path.endswith('.h5mu'):
+            import muon as mu
+            from scdata.tools import gene_score, annotate_gene
+
+            mdata = mu.read(path)
+            rna = mdata.mod['rna']
+            atac = mdata.mod['atac']
+            
+            gene_activity = gene_score(atac, rna_var=None, gene_region='combined')
+            
+            rna.var_names_make_unique()
+            gene_activity.var_names_make_unique()
+
+            return AnnData.concatenate(rna, gene_activity, join='inner', batch_key='batch',
+                                    batch_categories=['RNA', 'ATAC'], index_unique=None) 
     elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac'])):
         import muon as mu
-        adata = mu.read(path)
+        adata = mu.read(path) 
     else:
         raise ValueError("File {} not exists".format(path))
         
@@ -242,7 +257,8 @@ def preprocessing_rna(
         adata = reindex(adata, n_top_features)
         
     if log: log.info('Batch specific maxabs scaling')
-    adata = batch_scale(adata, chunk_size=chunk_size)
+    # adata = batch_scale(adata, chunk_size=chunk_size)
+    adata.X = MaxAbsScaler().fit_transform(adata.X)
     if log: log.info('Processed dataset shape: {}'.format(adata.shape))
     return adata
 
@@ -287,11 +303,12 @@ def preprocessing_atac(
     if target_sum is None: target_sum = 10000
     
     if log: log.info('Preprocessing')
-    # if not issparse(adata.X):
     if type(adata.X) != csr.csr_matrix:
         adata.X = scipy.sparse.csr_matrix(adata.X)
     
-    adata.X[adata.X>1] = 1
+    # adata.X[adata.X>1] = 1
+    sc.pp.normalize_total(adata, target_sum=target_sum)
+    sc.pp.log1p(adata)
     
     if log: log.info('Filtering cells')
     sc.pp.filter_cells(adata, min_genes=min_features)
@@ -310,12 +327,11 @@ def preprocessing_atac(
     
     # if log: log.info('Normalizing total per cell')
     # if target_sum != -1:
-    sc.pp.normalize_total(adata, target_sum=target_sum)
+    
 
         
-    # if log: log.info('Batch specific maxabs scaling')
-#    adata = batch_scale(adata, chunk_size=chunk_size)
-    # adata.X = maxabs_scale(adata.X)
+    if log: log.info('Batch specific maxabs scaling')
+    # adata = batch_scale(adata, chunk_size=chunk_size)
     adata.X = MaxAbsScaler().fit_transform(adata.X)
     if log: log.info('Processed dataset shape: {}'.format(adata.shape))
     return adata
@@ -399,8 +415,9 @@ def batch_scale(adata, chunk_size=CHUNK_SIZE):
     for b in adata.obs['batch'].unique():
         idx = np.where(adata.obs['batch']==b)[0]
         scaler = MaxAbsScaler(copy=False).fit(adata.X[idx])
-        for i in range(len(idx)//chunk_size+1):
-            adata.X[idx[i*chunk_size:(i+1)*chunk_size]] = scaler.transform(adata.X[idx[i*chunk_size:(i+1)*chunk_size]])
+        adata.X[idx] = scaler.transform(adata.X[idx])
+        # for i in range(len(idx)//chunk_size+1):
+            # adata.X[idx[i*chunk_size:(i+1)*chunk_size]] = scaler.transform(adata.X[idx[i*chunk_size:(i+1)*chunk_size]])
 
     return adata
         
@@ -607,3 +624,5 @@ def load_data(
     testloader = DataLoader(scdata, batch_sampler=batch_sampler)
     
     return adata, trainloader, testloader 
+
+
