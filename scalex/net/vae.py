@@ -11,9 +11,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from tqdm import tqdm
+from tqdm.autonotebook import trange
+from tqdm.contrib import tenumerate
 from collections import defaultdict
-import sys
 
 from .layer import *
 from .loss import *
@@ -155,9 +155,9 @@ class VAE(nn.Module):
         optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=5e-4)
         n_epoch = int(np.ceil(max_iteration/len(dataloader)))
         
-        with tqdm(range(n_epoch), total=n_epoch, desc='Epochs') as tq:       
+        with trange(n_epoch, total=n_epoch, desc='Epochs') as tq:
             for epoch in tq:
-                tk0 = tqdm(enumerate(dataloader), total=len(dataloader), leave=False, desc='Iterations', disable=(not verbose))
+                tk0 = tenumerate(dataloader, total=len(dataloader), leave=False, desc='Iterations', disable=(not verbose))
                 epoch_loss = defaultdict(float)
                 acc = []
                 for i, (x, y, idx) in tk0:
