@@ -527,6 +527,7 @@ def load_data(
         n_obs=None,
         processed=False,
         log=None,
+        num_workers=4,
     ):
     """
     Load dataset with preprocessing
@@ -604,9 +605,10 @@ def load_data(
         batch_size=batch_size, 
         drop_last=True, 
         shuffle=True, 
-        num_workers=4
+        num_workers=num_workers,
     )
+
     batch_sampler = BatchSampler(batch_size, adata.obs['batch'], drop_last=False)
-    testloader = DataLoader(scdata, batch_sampler=batch_sampler)
+    testloader = DataLoader(scdata, batch_sampler=batch_sampler, num_workers=num_workers)
     
     return adata, trainloader, testloader 
