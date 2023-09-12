@@ -37,6 +37,8 @@ def SCALEX(
         processed:bool=False,
         fraction:float=None,
         n_obs:int=None,
+        use_layer:str='X',
+        backed:bool=False,
         batch_size:int=64, 
         lr:float=2e-4, 
         max_iteration:int=30000,
@@ -147,6 +149,8 @@ def SCALEX(
             fraction=fraction,
             n_obs=n_obs,
             processed=processed,
+            use_layer=use_layer,
+            backed=backed,
             batch_name=batch_name, 
             batch_key=batch_key,
             log=log,
@@ -154,7 +158,8 @@ def SCALEX(
         )
         
         early_stopping = EarlyStopping(patience=10, checkpoint_file=os.path.join(outdir, 'checkpoint/model.pt') if outdir else None)
-        x_dim, n_domain = adata.shape[1], len(adata.obs['batch'].cat.categories)
+        x_dim = adata.shape[1] if (use_layer == 'X' or use_layer) in adata.layers else adata.obsm[use_layer].shape[1]
+        n_domain = len(adata.obs['batch'].cat.categories)
         
         # model config
         enc = [['fc', 1024, 1, 'relu'],['fc', 10, '', '']]  # TO DO

@@ -60,7 +60,7 @@ def read_mtx(path):
     return adata
 
 
-def load_file(path):  
+def load_file(path, backed=True):  
     """
     Load single cell dataset from file
     
@@ -74,7 +74,7 @@ def load_file(path):
     AnnData
     """
     if os.path.exists(DATA_PATH+path+'.h5ad'):
-        adata = sc.read_h5ad(DATA_PATH+path+'.h5ad')
+        adata = sc.read_h5ad(DATA_PATH+path+'.h5ad', backed=backed)
     elif os.path.isdir(path): # mtx format
         adata = read_mtx(path)
     elif os.path.isfile(path):
@@ -85,28 +85,27 @@ def load_file(path):
             adata = AnnData(df.values, dict(obs_names=df.index.values), dict(var_names=df.columns.values))
         elif path.endswith('.h5ad'):
             adata = sc.read_h5ad(path)
-        elif path.endswith('.h5mu'):
-            import muon as mu
-            from scdata.tools import gene_score, annotate_gene
+        # elif path.endswith('.h5mu'):
+        #     import muon as mu
 
-            mdata = mu.read(path)
-            rna = mdata.mod['rna']
-            atac = mdata.mod['atac']
+        #     mdata = mu.read(path)
+        #     rna = mdata.mod['rna']
+        #     atac = mdata.mod['atac']
             
-            gene_activity = gene_score(atac, rna_var=None, gene_region='combined')
+            # gene_activity = gene_score(atac, rna_var=None, gene_region='combined')
             
-            rna.var_names_make_unique()
-            gene_activity.var_names_make_unique()
+            # rna.var_names_make_unique()
+            # gene_activity.var_names_make_unique()
 
-            return AnnData.concatenate(rna, gene_activity, join='inner', batch_key='batch',
-                                    batch_categories=['RNA', 'ATAC'], index_unique=None) 
+            # return AnnData.concatenate(rna, gene_activity, join='inner', batch_key='batch',
+            #                         batch_categories=['RNA', 'ATAC'], index_unique=None) 
     elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac'])):
         import muon as mu
-        adata = mu.read(path) 
+        adata = mu.read(path, backed=backed) 
     else:
         raise ValueError("File {} not exists".format(path))
         
-    if not issparse(adata.X):
+    if not issparse(adata.X) and not backed:
         adata.X = scipy.sparse.csr_matrix(adata.X)
     adata.var_names_make_unique()
     return adata
@@ -198,6 +197,7 @@ def preprocessing_rna(
         target_sum: int = 10000, 
         n_top_features = 2000, # or gene list
         chunk_size: int = CHUNK_SIZE,
+        backed: bool = False,
         log=None
     ):
     """
@@ -230,7 +230,7 @@ def preprocessing_rna(
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
-    if type(adata.X) != csr.csr_matrix:
+    if type(adata.X) != csr.csr_matrix and not backed:
         adata.X = scipy.sparse.csr_matrix(adata.X)
     
     adata = adata[:, [gene for gene in adata.var_names 
@@ -269,6 +269,7 @@ def preprocessing_atac(
         target_sum=None, 
         n_top_features = 100000, # or gene list
         chunk_size: int = CHUNK_SIZE,
+        backed: bool = False,
         log=None
     ):
     """
@@ -343,6 +344,7 @@ def preprocessing(
         min_cells: int = 3, 
         target_sum: int = None, 
         n_top_features = None, # or gene list
+        backed: bool = False,
         chunk_size: int = CHUNK_SIZE,
         log=None
     ):
@@ -380,6 +382,7 @@ def preprocessing(
                    min_cells=min_cells, 
                    target_sum=target_sum,
                    n_top_features=n_top_features, 
+                   backed=backed,
                    chunk_size=chunk_size, 
                    log=log
                )
@@ -391,6 +394,7 @@ def preprocessing(
                    target_sum=target_sum,
                    n_top_features=n_top_features, 
                    chunk_size=chunk_size, 
+                   backed=backed,
                    log=log
                )
     else:
@@ -502,7 +506,7 @@ class SingleCellDataset(Dataset):
     """
     Dataloader of single-cell data
     """
-    def __init__(self, adata):
+    def __init__(self, adata, use_layer='X'):
         """
         create a SingleCellDataset object
             
@@ -513,15 +517,23 @@ class SingleCellDataset(Dataset):
         """
         self.adata = adata
         self.shape = adata.shape
+        self.use_layer = use_layer
         
     def __len__(self):
-        return self.adata.X.shape[0]
+        return self.adata.shape[0]
     
     def __getitem__(self, idx):
-        if isinstance(self.adata.X[idx], np.ndarray):
-            x = self.adata.X[idx].squeeze()
+        if self.use_layer == 'X':
+            if isinstance(self.adata.X[idx], np.ndarray):
+                x = self.adata.X[idx].squeeze().float()
+            else:
+                x = self.adata.X[idx].toarray().squeeze().float()
         else:
-            x = self.adata.X[idx].toarray().squeeze()
+            if self.use_layer in self.adata.layers:
+                x = self.adata.layers[self.use_layer][idx]
+            else:
+                x = self.adata.obsm[self.use_layer][idx]
+                
         domain_id = self.adata.obs['batch'].cat.codes[idx]
         return x, domain_id, idx
 
@@ -537,6 +549,7 @@ def load_data(
         min_cells=3, 
         target_sum=None,
         n_top_features=None, 
+        backed=False,
         batch_size=64, 
         chunk_size=CHUNK_SIZE,
         fraction=None,
@@ -544,6 +557,7 @@ def load_data(
         processed=False,
         log=None,
         num_workers=4,
+        use_layer='X',
     ):
     """
     Load dataset with preprocessing
@@ -604,7 +618,7 @@ def load_data(
     if n_obs is not None or fraction is not None:
         sc.pp.subsample(adata, fraction=fraction, n_obs=n_obs)
 
-    if not processed:
+    if not processed and use_layer == 'X':
         adata = preprocessing(
             adata, 
             profile=profile,
@@ -613,9 +627,17 @@ def load_data(
             target_sum=target_sum,
             n_top_features=n_top_features,
             chunk_size=chunk_size,
+            backed=backed,
             log=log,
         )
-    scdata = SingleCellDataset(adata) # Wrap AnnData into Pytorch Dataset
+    else:
+        if use_layer in adata.layers:
+            adata.layers[use_layer] = MaxAbsScaler().fit_transform(adata.layers[use_layer])
+        elif use_layer in adata.obsm:
+            adata.obsm[use_layer] = MaxAbsScaler().fit_transform(adata.obsm[use_layer])
+        else:
+            raise ValueError("Not support use_layer: `{}` yet".format(use_layer))
+    scdata = SingleCellDataset(adata, use_layer=use_layer) # Wrap AnnData into Pytorch Dataset
     trainloader = DataLoader(
         scdata, 
         batch_size=batch_size, 

@@ -29,6 +29,8 @@ if __name__ == '__main__':
     parser.add_argument('--processed', action='store_true', default=False)
     parser.add_argument('--fraction', type=float, default=None)
     parser.add_argument('--n_obs', type=int, default=None)
+    parser.add_argument('--use_layer', type=str, default='X')
+    parser.add_argument('--backed', action='store_true', default=False)
 
     parser.add_argument('--projection', '-p', default=None)
     parser.add_argument('--impute', type=str, default=None)
@@ -68,6 +70,8 @@ if __name__ == '__main__':
         fraction=args.fraction,
         n_obs=args.n_obs,
         processed=args.processed,
+        use_layer=args.use_layer,
+        backed=args.backed,
         batch_size=args.batch_size, 
         lr=args.lr, 
         max_iteration=args.max_iteration, 
