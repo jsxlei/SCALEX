@@ -52,6 +52,7 @@ def SCALEX(
         assess:bool=False,
         show:bool=True,
         eval:bool=False,
+        num_workers:int=4,
     ) -> AnnData:
     """
     Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
@@ -149,6 +150,7 @@ def SCALEX(
             batch_name=batch_name, 
             batch_key=batch_key,
             log=log,
+            num_workers=num_workers,
         )
         
         early_stopping = EarlyStopping(patience=10, checkpoint_file=os.path.join(outdir, 'checkpoint/model.pt') if outdir else None)
@@ -190,7 +192,8 @@ def SCALEX(
             processed=processed,
             batch_name=batch_name,
             batch_key=batch_key,
-            log = log
+            log = log,
+            num_workers=num_workers,
         )
 #         log.info('Processed dataset shape: {}'.format(adata.shape))
         

@@ -44,6 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--repeat', action='store_true')
     parser.add_argument('--assess', action='store_true')
     parser.add_argument('--eval', action='store_true')
+    parser.add_argument('--num_workers', type=int, default=4)
     # parser.add_argument('--version', type=int, default=2)
     # parser.add_argument('--k', type=str, default=30)
     # parser.add_argument('--embed', type=str, default='UMAP')
@@ -82,6 +83,7 @@ if __name__ == '__main__':
         verbose=True,
         assess=args.assess,
         eval=args.eval,
+        num_workers=args.num_workers,
         show=False,
     )
         

@@ -180,7 +180,7 @@ class VAE(nn.Module):
                         epoch_loss[k] += loss[k].item()
                         
                     info = ','.join(['{}={:.3f}'.format(k, v) for k,v in loss.items()])
-                    tk0.set_postfix_str(info)
+                    # tk0.set_postfix_str(info)
                     
 
                 epoch_loss = {k:v/(i+1) for k, v in epoch_loss.items()}
