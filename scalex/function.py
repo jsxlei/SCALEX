@@ -158,7 +158,7 @@ def SCALEX(
         )
         
         early_stopping = EarlyStopping(patience=10, checkpoint_file=os.path.join(outdir, 'checkpoint/model.pt') if outdir else None)
-        x_dim = adata.shape[1] if (use_layer == 'X' or use_layer) in adata.layers else adata.obsm[use_layer].shape[1]
+        x_dim = adata.shape[1] if (use_layer == 'X' or use_layer in adata.layers) else adata.obsm[use_layer].shape[1]
         n_domain = len(adata.obs['batch'].cat.categories)
         
         # model config

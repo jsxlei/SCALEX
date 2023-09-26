@@ -230,7 +230,7 @@ def preprocessing_rna(
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
-    if type(adata.X) != csr.csr_matrix and not backed:
+    if type(adata.X) != csr.csr_matrix and (not backed) and (not adata.isbacked):
         adata.X = scipy.sparse.csr_matrix(adata.X)
     
     adata = adata[:, [gene for gene in adata.var_names 
@@ -525,16 +525,16 @@ class SingleCellDataset(Dataset):
     def __getitem__(self, idx):
         if self.use_layer == 'X':
             if isinstance(self.adata.X[idx], np.ndarray):
-                x = self.adata.X[idx].squeeze().float()
+                x = self.adata.X[idx].squeeze().astype(float)
             else:
-                x = self.adata.X[idx].toarray().squeeze().float()
+                x = self.adata.X[idx].toarray().squeeze().astype(float)
         else:
             if self.use_layer in self.adata.layers:
                 x = self.adata.layers[self.use_layer][idx]
             else:
                 x = self.adata.obsm[self.use_layer][idx]
                 
-        domain_id = self.adata.obs['batch'].cat.codes[idx]
+        domain_id = self.adata.obs['batch'].cat.codes.iloc[idx]
         return x, domain_id, idx
 
 
