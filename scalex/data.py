@@ -60,7 +60,7 @@ def read_mtx(path):
     return adata
 
 
-def load_file(path, backed=True):  
+def load_file(path, backed=False):  
     """
     Load single cell dataset from file
     
