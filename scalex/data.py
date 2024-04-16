@@ -197,6 +197,7 @@ def preprocessing_rna(
         target_sum: int = 10000, 
         n_top_features = 2000, # or gene list
         chunk_size: int = CHUNK_SIZE,
+        keep_mt: bool = False,
         backed: bool = False,
         log=None
     ):
@@ -233,8 +234,10 @@ def preprocessing_rna(
     if type(adata.X) != csr.csr_matrix and (not backed) and (not adata.isbacked):
         adata.X = scipy.sparse.csr_matrix(adata.X)
     
-    adata = adata[:, [gene for gene in adata.var_names 
-                  if not str(gene).startswith(tuple(['ERCC', 'MT-', 'mt-']))]]
+    if not keep_mt:
+        if log: log.info('Filtering out MT genes')
+        adata = adata[:, [gene for gene in adata.var_names 
+                    if not str(gene).startswith(tuple(['ERCC', 'MT-', 'mt-']))]]
     
     if log: log.info('Filtering cells')
     sc.pp.filter_cells(adata, min_genes=min_features)
@@ -251,7 +254,8 @@ def preprocessing_rna(
     adata.raw = adata
     if log: log.info('Finding variable features')
     if type(n_top_features) == int and n_top_features>0:
-        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch', inplace=False, subset=True)
+        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch') #, inplace=False, subset=True)
+        adata = adata[:, adata.var.highly_variable].copy()
     elif type(n_top_features) != int:
         adata = reindex(adata, n_top_features)
         
@@ -344,6 +348,7 @@ def preprocessing(
         min_cells: int = 3, 
         target_sum: int = None, 
         n_top_features = None, # or gene list
+        keep_mt: bool = False,
         backed: bool = False,
         chunk_size: int = CHUNK_SIZE,
         log=None
@@ -382,6 +387,7 @@ def preprocessing(
                    min_cells=min_cells, 
                    target_sum=target_sum,
                    n_top_features=n_top_features, 
+                   keep_mt=keep_mt,
                    backed=backed,
                    chunk_size=chunk_size, 
                    log=log
@@ -482,7 +488,7 @@ class BatchSampler(Sampler):
         batch = {}
         sampler = np.random.permutation(len(self.batch_id))
         for idx in sampler:
-            c = self.batch_id[idx]
+            c = self.batch_id.iloc[idx]
             if c not in batch:
                 batch[c] = []
             batch[c].append(idx)
@@ -549,6 +555,7 @@ def load_data(
         min_cells=3, 
         target_sum=None,
         n_top_features=None, 
+        keep_mt=False,
         backed=False,
         batch_size=64, 
         chunk_size=CHUNK_SIZE,
@@ -626,6 +633,7 @@ def load_data(
             min_cells=min_cells, 
             target_sum=target_sum,
             n_top_features=n_top_features,
+            keep_mt=keep_mt,
             chunk_size=chunk_size,
             backed=backed,
             log=log,

@@ -38,6 +38,7 @@ def SCALEX(
         fraction:float=None,
         n_obs:int=None,
         use_layer:str='X',
+        keep_mt:bool=False,
         backed:bool=False,
         batch_size:int=64, 
         lr:float=2e-4, 
@@ -55,6 +56,7 @@ def SCALEX(
         show:bool=True,
         eval:bool=False,
         num_workers:int=4,
+        cell_type:str='cell_type',
     ) -> AnnData:
     """
     Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
@@ -153,6 +155,7 @@ def SCALEX(
             backed=backed,
             batch_name=batch_name, 
             batch_key=batch_key,
+            keep_mt=keep_mt,
             log=log,
             num_workers=num_workers,
         )
@@ -197,6 +200,7 @@ def SCALEX(
             processed=processed,
             batch_name=batch_name,
             batch_key=batch_key,
+            # keep_mt=keep_mt,
             log = log,
             num_workers=num_workers,
         )
@@ -230,7 +234,8 @@ def SCALEX(
         
         # UMAP visualization
         sc.set_figure_params(dpi=80, figsize=(3,3))
-        cols = ['batch', 'celltype', 'cell_type', 'leiden']
+        cols = [cell_type, 'leiden'] 
+        cols += ['batch'] if n_domain > 1 else []
         color = [c for c in cols if c in adata.obs]
         if outdir:
             sc.settings.figdir = outdir
@@ -243,17 +248,21 @@ def SCALEX(
                 embedding(adata, color='leiden', groupby='projection', save=save, show=show)
             else:
                 sc.pl.umap(adata, color=color, save=save, wspace=0.4, ncols=4, show=show)  
-        if assess:
-            if len(adata.obs['batch'].cat.categories) > 1:
-                entropy_score = batch_entropy_mixing_score(adata.obsm['X_umap'], adata.obs['batch'])
-                log.info('batch_entropy_mixing_score: {:.3f}'.format(entropy_score))
-
-            if 'celltype' in adata.obs:
-                sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs['celltype'].cat.codes)
-                log.info("silhouette_score: {:.3f}".format(sil_score))
 
     if outdir is not None:
         adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')
+
+    if assess:
+        if adata.shape[0] > 5e4:
+            log.info('The number of cells is too large to calculate entropy_batch_mixing_score and silhouette_score')
+            sc.pp.subsample(adata, n_obs=int(5e4))
+        if len(adata.obs['batch'].cat.categories) > 1:
+            entropy_score = batch_entropy_mixing_score(adata.obsm['X_umap'], adata.obs['batch'])
+            log.info('batch_entropy_mixing_score: {:.3f}'.format(entropy_score))
+
+        if cell_type in adata.obs:
+            sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs[cell_type].cat.codes)
+            log.info("silhouette_score: {:.3f}".format(sil_score))
     
     return adata
         
