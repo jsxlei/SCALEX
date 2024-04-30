@@ -660,3 +660,27 @@ def load_data(
     return adata, trainloader, testloader 
 
 
+
+
+def download_file(url, local_filename):
+    """
+    Downloads a file from a given URL and saves it to a local path using wget.
+
+    Args:
+    url (str): URL to the file.
+    local_filename (str): Local path where the file should be saved.
+
+    # URL of the file you want to download
+    url = "https://www.dropbox.com/scl/fi/dnwpv29kcfl449a8aikqi/pancreas.h5ad?dl=0"  # Changed dl=0 to dl=1 for direct download
+    # Local path to save the file, change '~/.scalex/pancreas.h5ad' to an absolute path if necessary
+    local_path = os.path.expanduser('~/.scalex/pancreas.h5ad')
+    """
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(local_filename), exist_ok=True)
+
+    # Use wget to download the file
+    try:
+        wget.download(url, local_filename)
+        print(f"File downloaded successfully: {local_filename}")
+    except Exception as e:
+        print(f"An error occurred while downloading the file: {e}")

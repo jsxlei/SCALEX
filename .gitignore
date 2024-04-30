@@ -9,3 +9,6 @@ build/
 dist/
 scalex.egg-info/
 docs/_build/
+docs/source/api/scalex*
+__pycache__/
+/scalex/_version.py

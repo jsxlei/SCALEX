@@ -7,6 +7,7 @@
 
 ![](docs/source/_static/img/scalex.jpg)
 
+
 ## News
 #### [2022-10-17] SCALEX is online at [Nature Communications](https://www.nature.com/articles/s41467-022-33758-z)
 
@@ -31,9 +32,10 @@ or git clone and install
 SCALEX is implemented in [Pytorch](https://pytorch.org/) framework.  
 SCALEX can be run on CPU devices, and running SCALEX on GPU devices if available is recommended.   
 
-## Quick Start
+## Getting started
 
-SCALEX can both used under command line and API function in jupyter notebook
+SCALEX can both used under command line and API function in jupyter notebook   
+Please refer to the [Documentation](https://readthedocs.org/projects/scalex/badge/?version=latest) and [Tutorial](https://scalex.readthedocs.io/en/latest/tutorial/index.html)
 
 
 ### 1. API function
@@ -56,7 +58,7 @@ Output is a Anndata object for further analysis with scanpy.
 #### Standard usage
 
 
-    SCALEX.py --data_list data1 data2 dataN --batch_categories batch_name1 batch_name2 batch_nameN 
+    SCALEX --data_list data1 data2 dataN --batch_categories batch_name1 batch_name2 batch_nameN 
     
     
 `--data_list`: data path of each batch of single-cell dataset, use `-d` for short
@@ -74,30 +76,29 @@ Output will be saved in the output folder including:
 ### Other Common Usage
 #### Use h5ad file storing `anndata` as input, one or multiple separated files
 
-    SCALEX.py --data_list <filename.h5ad>
+    SCALEX --data_list <filename.h5ad>
 
 #### Specify batch in `anadata.obs` using `--batch_name` if only one concatenated h5ad file provided, batch_name can be e.g. conditions, samples, assays or patients, default is `batch`
 
-    SCALEX.py --data_list <filename.h5ad> --batch_name <specific_batch_name>
+    SCALEX --data_list <filename.h5ad> --batch_name <specific_batch_name>
     
     
 #### Integrate heterogenous scATAC-seq datasets, add option `--profile` ATAC
         
-    SCALEX.py --data_list <filename.h5ad> --profile ATAC
+    SCALEX --data_list <filename.h5ad> --profile ATAC
     
 #### Inputation simultaneously along with Integration, add option `--impute`, results are stored at anndata.layers['impute']
 
-    SCALEX.py --data_list <atac_filename.h5ad> --profile ATAC --impute True
+    SCALEX --data_list <atac_filename.h5ad> --profile ATAC --impute True
     
     
 #### Custom features through `--n_top_features` a filename contains features in one column format read
 
-    SCALEX.py --data_list <filename.h5ad> --n_top_features features.txt
-    
+    SCALEX --data_list <filename.h5ad> --n_top_features features.txt
     
 #### Use preprocessed data `--processed`
 
-    SCALEX.py --data_list <filename.h5ad> --processed
+    SCALEX --data_list <filename.h5ad> --processed
 
 #### Option
 
@@ -151,8 +152,13 @@ Look for more usage of SCALEX
 	SCALEX.py --help 
     
     
+## Release notes
+
+See the [changelog](https://github.com/jsxlei/SCALEX/CHANGELOG.md).  
+
+
+## Citation
+
+Xiong, L., Tian, K., Li, Y., Ning, W., Gao, X., & Zhang, Q. C. (2022). Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space. Nature Communications, 13(1), 6118. https://doi.org/10.1038/s41467-022-33758-z
 
     
-    
-
-

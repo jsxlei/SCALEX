@@ -58,7 +58,12 @@ def embedding(
     
     if groups is None:
         groups = adata.obs[groupby].cat.categories
-    for b in groups:
+
+    # Create subplots
+    num_plots = len(groups)
+    fig, axes = plt.subplots(1, num_plots, figsize=(5 * num_plots, 5), squeeze=False)
+
+    for ax, b in zip(axes.flatten(), groups):
         adata.obs['tmp'] = adata.obs[color].astype(str)
         adata.obs['tmp'][adata.obs[groupby]!=b] = ''
         if cond2 is not None:
@@ -76,17 +81,15 @@ def embedding(
             palette = None
 
         title = b if cond2 is None else v2+sep+b
-        if save is not None:
-            save_ = '_'+b+save
-            show = False
-        else:
-            save_ = None
-            show = True
-        sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, title=title, palette=palette, size=size, save=save_,
-                   legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, show=show)
+
+        ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, ax=ax, title=title, palette=palette, size=size, 
+                   legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=0.25, show=False)
+
+
         del adata.obs['tmp']
         del adata.uns['tmp_colors']
-        
+    if save:
+        plt.savefig(save, bbox_inches='tight')
 
 def plot_meta(
         adata, 

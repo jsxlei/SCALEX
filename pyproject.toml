@@ -1,0 +1,81 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+name = "scalex"
+authors = [{name = "Lei Xiong"}]
+version = "1.0.3dev"
+readme = "README.md"
+requires-python = ">=3.7"
+description = "Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Intended Audience :: Science/Research"
+]
+dependencies = [
+    "numpy>=1.26.4",
+    "pandas>=2.2.2",
+    "scipy>=1.13.0",
+    "scikit-learn>=1.4.2",
+    "torch>=2.2.2",
+    "scanpy>=1.10.1",
+    "tqdm>=4.66.2",
+    "matplotlib>=3.8.4",
+    "seaborn>=0.13.2",
+    "leidenalg>=0.8.3",
+]
+
+[project.scripts]
+SCALEX = "scalex.function:main"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "twine>=4.0.2",
+]
+doc = [
+    "docutils>=0.8,!=0.18.*,!=0.19.*",
+    "sphinx>=4",
+    "sphinx-book-theme>=1.0.0",
+    "myst-nb",
+    "sphinxcontrib-bibtex>=1.0.0",
+    "sphinx-autodoc-typehints",
+    "sphinxext-opengraph",
+    "nbsphinx",
+    # For notebooks
+    "ipykernel",
+    "ipython",
+    "sphinx-copybutton",
+    "pandas",
+]
+test = [
+    "pytest>=6.0",
+    "coverage",
+]
+
+[tool.coverage.run]
+source = ["scalex"]
+omit = [
+    "**/test_*.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+xfail_strict = true
+addopts = [
+    "--import-mode=importlib",  # allow using test files with same name
+]
+
+[tool.ruff]
+line-length = 120
+src = ["scalex"]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.format]
+docstring-code-format = true

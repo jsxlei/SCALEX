@@ -8,24 +8,13 @@
 
 """
 
-import torch
-import numpy as np
-import os
-import scanpy as sc
-from anndata import AnnData
-from typing import Union, List
-
-from .data import load_data
-from .net.vae import VAE
-from .net.utils import EarlyStopping
-from .metrics import batch_entropy_mixing_score, silhouette_score
-from .logger import create_logger
-from .plot import embedding
+# from anndata import AnnData
+# from typing import Union, List
 
 
 def SCALEX(
-        data_list:Union[str, AnnData, List]=None, 
-        batch_categories:List=None,
+        data_list, #Union[str, AnnData, List]=None, 
+        batch_categories:list=None,
         profile:str='RNA',
         batch_name:str='batch',
         min_features:int=600, 
@@ -57,7 +46,7 @@ def SCALEX(
         eval:bool=False,
         num_workers:int=4,
         cell_type:str='cell_type',
-    ) -> AnnData:
+    ): # -> AnnData:
     """
     Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space
     
@@ -120,7 +109,19 @@ def SCALEX(
     umap.pdf 
         UMAP plot for visualization.
     """
-    
+    import torch
+    import numpy as np
+    import os
+    import scanpy as sc
+
+
+    from .data import load_data
+    from .net.vae import VAE
+    from .net.utils import EarlyStopping
+    from .metrics import batch_entropy_mixing_score, silhouette_score
+    from .logger import create_logger
+    from .plot import embedding
+
     np.random.seed(seed) # seed
     torch.manual_seed(seed)
 
@@ -245,7 +246,9 @@ def SCALEX(
 
         if len(color) > 0:
             if projection and (not repeat):
-                embedding(adata, color='leiden', groupby='projection', save=save, show=show)
+                cell_type = cell_type if cell_type in adata.obs else 'leiden'
+                save = os.path.join(outdir, 'umap.png')
+                embedding(adata, color=cell_type, groupby='projection', save=save, show=show)
             else:
                 sc.pl.umap(adata, color=color, save=save, wspace=0.4, ncols=4, show=show)  
 
@@ -254,15 +257,17 @@ def SCALEX(
 
     if assess:
         if adata.shape[0] > 5e4:
-            log.info('The number of cells is too large to calculate entropy_batch_mixing_score and silhouette_score')
+            log.info('Subsample cell numbers to 50,000 for entropy_batch_mixing_score calculation.')
             sc.pp.subsample(adata, n_obs=int(5e4))
         if len(adata.obs['batch'].cat.categories) > 1:
             entropy_score = batch_entropy_mixing_score(adata.obsm['X_umap'], adata.obs['batch'])
             log.info('batch_entropy_mixing_score: {:.3f}'.format(entropy_score))
+            adata.uns['batch_entropy_mixing_score'] = entropy_score
 
         if cell_type in adata.obs:
             sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs[cell_type].cat.codes)
             log.info("silhouette_score: {:.3f}".format(sil_score))
+            adata.uns['silhouette_score'] = sil_score
     
     return adata
         
@@ -299,3 +304,91 @@ def label_transfer(ref, query, rep='latent', label='celltype'):
     
     return y_test
 
+import argparse
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space')
+    
+    parser.add_argument('--data_list', '-d', type=str, nargs='+', default=[])
+    parser.add_argument('--batch_categories', '-b', type=str, nargs='+', default=None)
+    parser.add_argument('--join', type=str, default='inner')
+    parser.add_argument('--batch_key', type=str, default='batch')
+    parser.add_argument('--batch_name', type=str, default='batch')
+    parser.add_argument('--profile', type=str, default='RNA')
+    parser.add_argument('--test_list', '-t', type=str, nargs='+', default=[])
+    
+    parser.add_argument('--min_features', type=int, default=None)
+    parser.add_argument('--min_cells', type=int, default=3)
+    parser.add_argument('--n_top_features', default=None)
+    parser.add_argument('--target_sum', type=int, default=None)
+    parser.add_argument('--processed', action='store_true', default=False)
+    parser.add_argument('--fraction', type=float, default=None)
+    parser.add_argument('--n_obs', type=int, default=None)
+    parser.add_argument('--use_layer', type=str, default='X')
+    parser.add_argument('--backed', action='store_true', default=False)
+
+    parser.add_argument('--projection', '-p', default=None)
+    parser.add_argument('--impute', type=str, default=None)
+    parser.add_argument('--outdir', '-o', type=str, default='output/')
+    
+    parser.add_argument('--lr', type=float, default=2e-4)
+    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('-g','--gpu', type=int, default=0)
+    parser.add_argument('--max_iteration', type=int, default=30000)
+    parser.add_argument('--seed', type=int, default=124)
+    parser.add_argument('--chunk_size', type=int, default=20000)
+    parser.add_argument('--ignore_umap', action='store_true')
+    parser.add_argument('--repeat', action='store_true')
+    parser.add_argument('--assess', action='store_true')
+    parser.add_argument('--eval', action='store_true')
+    parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--keep_mt', action='store_true')
+    # parser.add_argument('--version', type=int, default=2)
+    # parser.add_argument('--k', type=str, default=30)
+    # parser.add_argument('--embed', type=str, default='UMAP')
+#     parser.add_argument('--beta', type=float, default=0.5)
+#     parser.add_argument('--hid_dim', type=int, default=1024)
+
+
+    args = parser.parse_args()
+    
+    from scalex import SCALEX
+    adata = SCALEX(
+        args.data_list, 
+        batch_categories=args.batch_categories,
+        profile=args.profile,
+        join=args.join, 
+        batch_key=args.batch_key, 
+        min_features=args.min_features, 
+        min_cells=args.min_cells, 
+        target_sum=args.target_sum,
+        n_top_features=args.n_top_features, 
+        fraction=args.fraction,
+        n_obs=args.n_obs,
+        processed=args.processed,
+        keep_mt=args.keep_mt,
+        use_layer=args.use_layer,
+        backed=args.backed,
+        batch_size=args.batch_size, 
+        lr=args.lr, 
+        max_iteration=args.max_iteration, 
+        impute=args.impute,
+        batch_name=args.batch_name, 
+        seed=args.seed, 
+        gpu=args.gpu, 
+        outdir=args.outdir, 
+        projection=args.projection, 
+        chunk_size=args.chunk_size,
+        ignore_umap=args.ignore_umap,
+        repeat=args.repeat,
+        verbose=True,
+        assess=args.assess,
+        eval=args.eval,
+        num_workers=args.num_workers,
+        show=False,
+    )
+        
+if __name__ == '__main__':
+    main()
