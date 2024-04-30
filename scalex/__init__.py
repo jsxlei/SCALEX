@@ -1,5 +1,5 @@
 # Define the variable '__version__':
-__version__ = "1.0.3dev"
+__version__ = "1.0.4"
 __author__ = "Lei Xiong"
 __email__ = "jsxlei@gmail.com"
     

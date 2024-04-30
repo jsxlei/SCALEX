@@ -61,7 +61,7 @@ def embedding(
 
     # Create subplots
     num_plots = len(groups)
-    fig, axes = plt.subplots(1, num_plots, figsize=(5 * num_plots, 5), squeeze=False)
+    fig, axes = plt.subplots(num_plots, 1, figsize=(5, 5 * num_plots), squeeze=False)
 
     for ax, b in zip(axes.flatten(), groups):
         adata.obs['tmp'] = adata.obs[color].astype(str)

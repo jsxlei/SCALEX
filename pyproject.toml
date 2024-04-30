@@ -5,7 +5,7 @@ requires = ["hatchling"]
 [project]
 name = "scalex"
 authors = [{name = "Lei Xiong"}]
-version = "1.0.3dev"
+version = "1.0.4"
 readme = "README.md"
 requires-python = ">=3.7"
 description = "Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space"
