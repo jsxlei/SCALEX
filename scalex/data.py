@@ -228,6 +228,8 @@ def preprocessing_rna(
     if min_features is None: min_features = 600
     if n_top_features is None: n_top_features = 2000
     if target_sum is None: target_sum = 10000
+
+    # adata.layers['count'] = adata.X.copy()
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
@@ -251,7 +253,8 @@ def preprocessing_rna(
     if log: log.info('Log1p transforming')
     sc.pp.log1p(adata)
     
-    adata.raw = adata
+    adata.raw = adata # keep the normalized and log1p transformed data as raw gene expression for differential expression analysis
+
     if log: log.info('Finding variable features')
     if type(n_top_features) == int and n_top_features>0:
         sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch') #, inplace=False, subset=True)
@@ -639,7 +642,9 @@ def load_data(
             log=log,
         )
     else:
-        if use_layer in adata.layers:
+        if use_layer == 'X':
+            adata.X = MaxAbsScaler().fit_transform(adata.X)
+        elif use_layer in adata.layers:
             adata.layers[use_layer] = MaxAbsScaler().fit_transform(adata.layers[use_layer])
         elif use_layer in adata.obsm:
             adata.obsm[use_layer] = MaxAbsScaler().fit_transform(adata.obsm[use_layer])
