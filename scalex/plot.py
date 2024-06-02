@@ -65,9 +65,9 @@ def embedding(
 
     for ax, b in zip(axes.flatten(), groups):
         adata.obs['tmp'] = adata.obs[color].astype(str)
-        adata.obs['tmp'][adata.obs[groupby]!=b] = ''
+        adata.obs.loc[adata.obs[groupby]!=b, 'tmp'] = ''
         if cond2 is not None:
-            adata.obs['tmp'][adata.obs[cond2]!=v2] = ''
+            adata.obs.loc[adata.obs[cond2]!=v2, 'tmp'] = ''
             groups = list(adata[(adata.obs[groupby]==b) & 
                                 (adata.obs[cond2]==v2)].obs[color].astype('category').cat.categories.values)
             size = min(size, 120000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
