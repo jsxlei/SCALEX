@@ -8,7 +8,7 @@
 
 """
 
-from anndata import AnnData
+from anndata import AnnData, concat
 # from typing import Union, List
 
 
@@ -216,12 +216,14 @@ def SCALEX(
     del model
     if projection and (not repeat):
         ref = sc.read_h5ad(os.path.join(projection, 'adata.h5ad'))
-        adata = AnnData.concatenate(
-            ref, adata, 
-            batch_categories=['reference', 'query'], 
-            batch_key='projection', 
-            index_unique=None
+        adata = concat(
+            [ref, adata],
+            label='projection',
+            keys=['reference', 'query'],
+            index_unique=None,
         )
+        if 'leiden' in adata.obs:
+            del adata.obs['leiden']
 
     if outdir is not None:
         adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')  
