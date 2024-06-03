@@ -9,7 +9,7 @@ import torch
 
 def test_preprocess_rna(adata_test):
     adata = adata_test.copy()
-    adata = preprocessing_rna(adata, min_cells=4, min_features=0)
+    adata = preprocessing_rna(adata, min_cells=2, min_features=0)
     assert adata.raw.shape == adata_test.shape
 
 
