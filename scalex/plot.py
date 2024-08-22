@@ -29,6 +29,7 @@ def embedding(
         sep='_', 
         basis='X_umap',
         size=10,
+        n_cols=4,
         show=True,
     ):
     """
@@ -57,37 +58,47 @@ def embedding(
     """
     
     if groups is None:
-        groups = adata.obs[groupby].cat.categories
+        _groups = adata.obs[groupby].cat.categories
+    else:
+        _groups = groups
 
     # Create subplots
-    num_plots = len(groups)
-    fig, axes = plt.subplots(num_plots, 1, figsize=(5, 5 * num_plots), squeeze=False)
+    n_plots = len(_groups)
+    n_rows = (n_plots + n_cols - 1) // n_cols  # Calculate number of rows
 
-    for ax, b in zip(axes.flatten(), groups):
-        adata.obs['tmp'] = adata.obs[color].astype(str)
-        adata.obs.loc[adata.obs[groupby]!=b, 'tmp'] = ''
-        if cond2 is not None:
-            adata.obs.loc[adata.obs[cond2]!=v2, 'tmp'] = ''
-            groups = list(adata[(adata.obs[groupby]==b) & 
-                                (adata.obs[cond2]==v2)].obs[color].astype('category').cat.categories.values)
-            size = min(size, 120000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
+
+    for j, ax in enumerate(axes.flatten()):
+        if j < n_plots:
+            b = _groups[j]
+            adata.obs['tmp'] = adata.obs[color].astype(str)
+            adata.obs.loc[adata.obs[groupby]!=b, 'tmp'] = ''
+            if cond2 is not None:
+                adata.obs.loc[adata.obs[cond2]!=v2, 'tmp'] = ''
+                groups = list(adata[(adata.obs[groupby]==b) & 
+                                    (adata.obs[cond2]==v2)].obs[color].astype('category').cat.categories.values)
+                size = min(size, 120000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
+            else:
+                groups = list(adata[adata.obs[groupby]==b].obs[color].astype('category').cat.categories.values)
+                size = min(size, 120000/len(adata[adata.obs[groupby]==b]))
+            adata.obs['tmp'] = adata.obs['tmp'].astype('category')
+            if color_map is not None:
+                palette = [color_map[i] if i in color_map else 'gray' for i in adata.obs['tmp'].cat.categories]
+            else:
+                palette = None
+
+            title = b if cond2 is None else v2+sep+b
+
+            ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, ax=ax, title=title, palette=palette, size=size, 
+                    legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=0.25, show=False)
+            
+            del adata.obs['tmp']
+            del adata.uns['tmp_colors']
         else:
-            groups = list(adata[adata.obs[groupby]==b].obs[color].astype('category').cat.categories.values)
-            size = min(size, 120000/len(adata[adata.obs[groupby]==b]))
-        adata.obs['tmp'] = adata.obs['tmp'].astype('category')
-        if color_map is not None:
-            palette = [color_map[i] if i in color_map else 'gray' for i in adata.obs['tmp'].cat.categories]
-        else:
-            palette = None
-
-        title = b if cond2 is None else v2+sep+b
-
-        ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, ax=ax, title=title, palette=palette, size=size, 
-                   legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=0.25, show=False)
+            fig.delaxes(ax)
 
 
-        del adata.obs['tmp']
-        del adata.uns['tmp_colors']
+
     if save:
         plt.savefig(save, bbox_inches='tight')
 

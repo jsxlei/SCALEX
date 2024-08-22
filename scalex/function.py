@@ -111,6 +111,7 @@ def SCALEX(
     """
     import torch
     import numpy as np
+    import pandas as pd
     import os
     import scanpy as sc
 
@@ -225,8 +226,8 @@ def SCALEX(
         if 'leiden' in adata.obs:
             del adata.obs['leiden']
 
-    if outdir is not None:
-        adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')  
+    # if outdir is not None:
+    #     adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')  
 
     if not ignore_umap: #and adata.shape[0]<1e6:
         log.info('Plot umap')
