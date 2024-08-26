@@ -151,7 +151,7 @@ def plot_meta(
     adata.obs[color] = adata.obs[color].astype('category')
     batches = np.unique(adata.obs[batch])
     if colors is None:
-        colors = sns.color_palette("tab10", len(np.unique(adata.obs[color])))
+        colors = sns.color_palette("tab10", len(np.unique(adata.obs[batch])))
     for i,b in enumerate(batches):
         for cat in adata.obs[color].cat.categories:
             index = np.where((adata.obs[color]==cat) & (adata.obs[batch]==b))[0]
