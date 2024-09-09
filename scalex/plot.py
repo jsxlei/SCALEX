@@ -77,10 +77,10 @@ def embedding(
                 adata.obs.loc[adata.obs[cond2]!=v2, 'tmp'] = ''
                 groups = list(adata[(adata.obs[groupby]==b) & 
                                     (adata.obs[cond2]==v2)].obs[color].astype('category').cat.categories.values)
-                size = min(size, 120000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
+                size = max(size, 120000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
             else:
                 groups = list(adata[adata.obs[groupby]==b].obs[color].astype('category').cat.categories.values)
-                size = min(size, 120000/len(adata[adata.obs[groupby]==b]))
+                size = max(size, 120000/len(adata[adata.obs[groupby]==b]))
             adata.obs['tmp'] = adata.obs['tmp'].astype('category')
             if color_map is not None:
                 palette = [color_map[i] if i in color_map else 'gray' for i in adata.obs['tmp'].cat.categories]

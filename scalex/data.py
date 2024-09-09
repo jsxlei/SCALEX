@@ -73,8 +73,12 @@ def load_file(path, backed=False):
     ------
     AnnData
     """
+    print(path)
     if os.path.exists(DATA_PATH+path+'.h5ad'):
         adata = sc.read_h5ad(DATA_PATH+path+'.h5ad', backed=backed)
+    elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac'])):
+        import muon as mu
+        adata = mu.read(path, backed=backed) 
     elif os.path.isdir(path): # mtx format
         adata = read_mtx(path)
     elif os.path.isfile(path):
@@ -99,9 +103,6 @@ def load_file(path, backed=False):
 
             # return AnnData.concatenate(rna, gene_activity, join='inner', batch_key='batch',
             #                         batch_categories=['RNA', 'ATAC'], index_unique=None) 
-    elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac'])):
-        import muon as mu
-        adata = mu.read(path, backed=backed) 
     else:
         raise ValueError("File {} not exists".format(path))
         
@@ -230,6 +231,11 @@ def preprocessing_rna(
     if target_sum is None: target_sum = 10000
 
     # adata.layers['count'] = adata.X.copy()
+    batch_counts = adata.obs['batch'].value_counts()
+
+    # Filter out batches with only one sample
+    valid_batches = batch_counts[batch_counts > 10].index
+    adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
