@@ -29,6 +29,7 @@ dependencies = [
     "matplotlib>=3.8.4",
     "seaborn>=0.13.2",
     "leidenalg>=0.8.3",
+    "gseapy",
 ]
 
 [project.scripts]

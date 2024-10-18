@@ -223,6 +223,7 @@ def SCALEX(
             keys=['reference', 'query'],
             index_unique=None,
         )
+        # adata.raw = concat([ref.raw.to_adata(), adata.raw.to_adata()], join='outer', label='projection', keys=['reference', 'query'])
         if 'leiden' in adata.obs:
             del adata.obs['leiden']
 

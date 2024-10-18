@@ -28,9 +28,10 @@ def embedding(
         legend_fontweight='bold', 
         sep='_', 
         basis='X_umap',
-        size=20,
+        size=30,
         n_cols=4,
         show=True,
+        **kwargs
     ):
     """
     plot separated embeddings with others as background
@@ -66,7 +67,7 @@ def embedding(
     n_plots = len(_groups)
     n_rows = (n_plots + n_cols - 1) // n_cols  # Calculate number of rows
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols+5, 5*n_rows))
 
     for j, ax in enumerate(axes.flatten()):
         if j < n_plots:
@@ -77,10 +78,10 @@ def embedding(
                 adata.obs.loc[adata.obs[cond2]!=v2, 'tmp'] = ''
                 groups = list(adata[(adata.obs[groupby]==b) & 
                                     (adata.obs[cond2]==v2)].obs[color].astype('category').cat.categories.values)
-                size = max(size, 120000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
+                size = max(size, 12000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
             else:
                 groups = list(adata[adata.obs[groupby]==b].obs[color].astype('category').cat.categories.values)
-                size = max(size, 120000/len(adata[adata.obs[groupby]==b]))
+                size = max(size, 12000/len(adata[adata.obs[groupby]==b]))
             adata.obs['tmp'] = adata.obs['tmp'].astype('category')
             if color_map is not None:
                 palette = [color_map[i] if i in color_map else 'gray' for i in adata.obs['tmp'].cat.categories]
@@ -90,7 +91,7 @@ def embedding(
             title = b if cond2 is None else v2+sep+b
 
             ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, ax=ax, title=title, palette=palette, size=size, 
-                    legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=0.25, show=False)
+                    legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=0.25, show=False, **kwargs)
             
             del adata.obs['tmp']
             del adata.uns['tmp_colors']
@@ -101,6 +102,30 @@ def embedding(
 
     if save:
         plt.savefig(save, bbox_inches='tight')
+
+
+def plot_expr(adata, gene, groupby='batch', category=None, n_cols=5, size=40, **kwargs):
+    vmax = adata[:, gene].X.max() if adata.raw is None else adata.raw[:, gene].X.max()
+    batches = np.unique(adata.obs.loc[adata.obs['category'] == category, groupby])
+    n_plots = len(batches)  
+    n_rows = (n_plots + n_cols - 1) // n_cols  # Calculate number of rows
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
+    
+    for i, ax in enumerate(axes.flatten()):
+        if i < n_plots:
+            current_batch_mask = adata.obs[groupby] == batches[i] #if category is None else (adata.obs[groupby] == batches[i]) & (adata.obs['category'] == category)
+            size = max(size, 6000/len(adata[current_batch_mask]))
+    
+            # Plot all cells in gray as the background
+            sc.pl.umap(adata, color=None, size=size, show=False, alpha=0.2, ax=ax)
+        
+            # Plot only the current batch with gene expression
+            sc.pl.umap(adata[current_batch_mask], color=gene, size=size, vmax=vmax, ax=ax, show=False, title=batches[i],  **kwargs)
+        else:
+            fig.delaxes(ax)
+    # Show the final overlayed plot
+    # plt.suptitle(gene)
+    plt.show()
 
 def plot_meta(
         adata, 
@@ -180,7 +205,7 @@ def plot_meta(
     plt.yticks(fontsize=fontsize)
 
     if save:
-        plt.save(save, bbox_inches='tight')
+        plt.savefig(save, bbox_inches='tight')
     else:
         plt.show()
         
@@ -280,7 +305,7 @@ def plot_meta2(
     plt.ylabel(batches[1], fontsize=fontsize)
     
     if save:
-        plt.save(save, bbox_inches='tight')
+        plt.savefig(save, bbox_inches='tight')
     else:
         plt.show()
         

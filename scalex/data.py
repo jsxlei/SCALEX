@@ -76,7 +76,7 @@ def load_file(path, backed=False):
     print(path)
     if os.path.exists(DATA_PATH+path+'.h5ad'):
         adata = sc.read_h5ad(DATA_PATH+path+'.h5ad', backed=backed)
-    elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac'])):
+    elif path.endswith(tuple(['.h5mu/rna', '.h5mu/atac', 'h5mu/prot', 'h5mu/adt'])):
         import muon as mu
         adata = mu.read(path, backed=backed) 
     elif os.path.isdir(path): # mtx format
@@ -266,7 +266,9 @@ def preprocessing_rna(
         sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch') #, inplace=False, subset=True)
         adata = adata[:, adata.var.highly_variable].copy()
     elif type(n_top_features) != int:
+        raw = adata.raw.to_adata()
         adata = reindex(adata, n_top_features)
+        adata.raw = raw
         
     if log: log.info('Batch specific maxabs scaling')
     # adata = batch_scale(adata, chunk_size=chunk_size)
