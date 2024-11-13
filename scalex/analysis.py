@@ -97,26 +97,31 @@ def annotate(
         print('-'*20+'\n', n_top, '\n'+'-'*20)
 
         if go:
-            go_results = enrich_analysis(marker.head(n_top))
-            go_results['cell_type'] = 'leiden_' + go_results['cell_type']
-            n = go_results['cell_type'].nunique()
-            ax = dotplot(go_results,
-                     column="Adjusted P-value",
-                      x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
-                      # size=10,
-                      top_term=10,
-                      figsize=(0.7*n, 2*n),
-                      title = "GO_BP",
-                      xticklabels_rot=45, # rotate xtick labels
-                      show_ring=False, # set to False to revmove outer ring
-                      marker='o',
-                     cutoff=0.05,
-                     cmap='viridis'
-                     )
-            if out_dir is not None:
-                os.makedirs(out_dir, exist_ok=True)
-                go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/go_results_{n_top}.csv')
-            plt.show()
+            for option in ['pos', 'neg']:
+                if option == 'pos':
+                    go_results = enrich_analysis(marker.head(n_top))
+                else:
+                    go_results = enrich_analysis(marker.tail(n_top))
+            
+                go_results['cell_type'] = 'leiden_' + go_results['cell_type']
+                n = go_results['cell_type'].nunique()
+                ax = dotplot(go_results,
+                        column="Adjusted P-value",
+                        x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
+                        # size=10,
+                        top_term=10,
+                        figsize=(0.7*n, 2*n),
+                        title = f"{option}_GO_BP_{n_top}",  
+                        xticklabels_rot=45, # rotate xtick labels
+                        show_ring=False, # set to False to revmove outer ring
+                        marker='o',
+                        cutoff=0.05,
+                        cmap='viridis'
+                        )
+                if out_dir is not None:
+                    os.makedirs(out_dir, exist_ok=True)
+                    go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/{option}_go_results_{n_top}.csv')
+                plt.show()
         
         for pathway_name, pathways in additional.items():
             try:

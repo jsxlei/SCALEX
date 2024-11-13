@@ -21,6 +21,7 @@ def SCALEX(
         min_cells:int=3, 
         target_sum:int=None,
         n_top_features:int=None,
+        min_cell_per_batch:int=10,
         join:str='inner', 
         batch_key:str='batch',  
         processed:bool=False,
@@ -30,6 +31,8 @@ def SCALEX(
         keep_mt:bool=False,
         backed:bool=False,
         batch_size:int=64, 
+        groupby:str=None,
+        subsets:list=None,
         lr:float=2e-4, 
         max_iteration:int=30000,
         seed:int=124, 
@@ -146,7 +149,10 @@ def SCALEX(
             profile=profile,
             target_sum=target_sum,
             n_top_features=n_top_features,
+            min_cell_per_batch=min_cell_per_batch,
             batch_size=batch_size, 
+            groupby=groupby,
+            subsets=subsets,
             chunk_size=chunk_size,
             min_features=min_features, 
             min_cells=min_cells,
@@ -199,6 +205,7 @@ def SCALEX(
             n_top_features=n_top_features, 
             min_cells=0,
             min_features=min_features,
+            min_cell_per_batch=min_cell_per_batch,
             processed=processed,
             batch_name=batch_name,
             batch_key=batch_key,
@@ -226,6 +233,9 @@ def SCALEX(
         # adata.raw = concat([ref.raw.to_adata(), adata.raw.to_adata()], join='outer', label='projection', keys=['reference', 'query'])
         if 'leiden' in adata.obs:
             del adata.obs['leiden']
+        for col in adata.obs.columns:
+            if not pd.api.types.is_string_dtype(adata.obs[col]):
+                adata.obs[col] = adata.obs[col].astype(str)
 
     # if outdir is not None:
     #     adata.write(os.path.join(outdir, 'adata.h5ad'), compression='gzip')  
@@ -321,12 +331,14 @@ def main():
     parser.add_argument('--batch_key', type=str, default='batch')
     parser.add_argument('--batch_name', type=str, default='batch')
     parser.add_argument('--profile', type=str, default='RNA')
-    parser.add_argument('--test_list', '-t', type=str, nargs='+', default=[])
+    parser.add_argument('--subsets', type=str, nargs='+', default=None)
+    parser.add_argument('--groupby', type=str, default=None)
     
     parser.add_argument('--min_features', type=int, default=None)
     parser.add_argument('--min_cells', type=int, default=3)
     parser.add_argument('--n_top_features', default=None)
     parser.add_argument('--target_sum', type=int, default=None)
+    parser.add_argument('--min_cell_per_batch', type=int, default=10)
     parser.add_argument('--processed', action='store_true', default=False)
     parser.add_argument('--fraction', type=float, default=None)
     parser.add_argument('--n_obs', type=int, default=None)
@@ -365,10 +377,13 @@ def main():
         profile=args.profile,
         join=args.join, 
         batch_key=args.batch_key, 
+        groupby=args.groupby,
+        subsets=args.subsets,
         min_features=args.min_features, 
         min_cells=args.min_cells, 
         target_sum=args.target_sum,
         n_top_features=args.n_top_features, 
+        min_cell_per_batch=args.min_cell_per_batch,
         fraction=args.fraction,
         n_obs=args.n_obs,
         processed=args.processed,

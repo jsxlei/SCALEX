@@ -198,6 +198,7 @@ def preprocessing_rna(
         target_sum: int = 10000, 
         n_top_features = 2000, # or gene list
         chunk_size: int = CHUNK_SIZE,
+        min_cell_per_batch: int = 10,
         keep_mt: bool = False,
         backed: bool = False,
         log=None
@@ -234,8 +235,11 @@ def preprocessing_rna(
     batch_counts = adata.obs['batch'].value_counts()
 
     # Filter out batches with only one sample
-    valid_batches = batch_counts[batch_counts > 10].index
+    print('min_cell_per_batch', min_cell_per_batch)
+    valid_batches = batch_counts[batch_counts >= min_cell_per_batch].index
     adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
+    # if log: log.info('There are {} batches under batch_name: {}'.format(len(adata.obs['batch'].cat.categories), batch_name))
+    if log: log.info(adata.obs['batch'].value_counts())
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
@@ -359,6 +363,7 @@ def preprocessing(
         min_cells: int = 3, 
         target_sum: int = None, 
         n_top_features = None, # or gene list
+        min_cell_per_batch: int = 10,
         keep_mt: bool = False,
         backed: bool = False,
         chunk_size: int = CHUNK_SIZE,
@@ -398,6 +403,7 @@ def preprocessing(
                    min_cells=min_cells, 
                    target_sum=target_sum,
                    n_top_features=n_top_features, 
+                   min_cell_per_batch=min_cell_per_batch,
                    keep_mt=keep_mt,
                    backed=backed,
                    chunk_size=chunk_size, 
@@ -562,10 +568,13 @@ def load_data(
         join='inner', 
         batch_key='batch', 
         batch_name='batch',
+        groupby=None,
+        subsets=None,
         min_features=600, 
         min_cells=3, 
         target_sum=None,
         n_top_features=None, 
+        min_cell_per_batch=10,
         keep_mt=False,
         backed=False,
         batch_size=64, 
@@ -592,6 +601,8 @@ def load_data(
         Add the batch annotation to obs using this key. Default: 'batch'.
     batch_name
         Use this annotation in obs as batches for training model. Default: 'batch'.
+    subsets
+        Subsets of data to load. Default: None.
     min_features
         Filtered out cells that are detected in less than min_features. Default: 600.
     min_cells
@@ -615,6 +626,10 @@ def load_data(
         An iterable over the given dataset for testing
     """
     adata = concat_data(data_list, batch_categories, join=join, batch_key=batch_key)
+    if subsets is not None and groupby is not None:
+        adata = adata[adata.obs[groupby].isin(subsets)].copy()
+        if log: log.info('Subsets dataset shape: {}'.format(adata.shape))
+
     if log: log.info('Raw dataset shape: {}'.format(adata.shape))
     if batch_name!='batch':
         if ',' in batch_name:
@@ -625,7 +640,6 @@ def load_data(
     if 'batch' not in adata.obs:
         adata.obs['batch'] = 'batch'
     adata.obs['batch'] = adata.obs['batch'].astype('category')
-    if log: log.info('There are {} batches under batch_name: {}'.format(len(adata.obs['batch'].cat.categories), batch_name))
     
     if isinstance(n_top_features, str):
         if os.path.isfile(n_top_features):
@@ -644,6 +658,7 @@ def load_data(
             min_cells=min_cells, 
             target_sum=target_sum,
             n_top_features=n_top_features,
+            min_cell_per_batch=min_cell_per_batch,
             keep_mt=keep_mt,
             chunk_size=chunk_size,
             backed=backed,
@@ -658,6 +673,7 @@ def load_data(
             adata.obsm[use_layer] = MaxAbsScaler().fit_transform(adata.obsm[use_layer])
         else:
             raise ValueError("Not support use_layer: `{}` yet".format(use_layer))
+        
     scdata = SingleCellDataset(adata, use_layer=use_layer) # Wrap AnnData into Pytorch Dataset
     trainloader = DataLoader(
         scdata, 
