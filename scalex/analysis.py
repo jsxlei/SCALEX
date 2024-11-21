@@ -143,3 +143,91 @@ def annotate(
                      )
         
             plt.show()
+
+
+
+
+def find_go_term_gene(df, term):
+    """
+    df: df = pd.read_csv(go_results, index_col=0)
+    term: either Term full name or Go number: GO:xxxx
+    """
+    if term.startswith('GO'):
+        df['GO'] = df['Term'].str.split('(').str[1].str.replace(')', '')
+        select = df[df['GO'] == term].copy()
+    else:
+        select = df[df['Term'] == term].copy()
+    gene_set = set(gene for sublist in select['Genes'].str.split(';') for gene in sublist)
+    # gene_set = set(select['Genes'].str.split(';'))
+    # print(select['Term'].head(1).values[0])
+    # print('\n'.join(gene_set))
+    return gene_set
+
+def format_dict_of_list(d, out='table'):
+    if out == 'matrix':
+        data = []
+        for k, lt in d.items():
+            for v in lt:
+                data.append({'Gene': v, 'Pathway': k})
+
+        # Step 2: Create a DataFrame from the list
+        df = pd.DataFrame(data)
+
+        # Step 3: Use crosstab to pivot the DataFrame
+        df = pd.crosstab(df['Gene'], df['Pathway'])
+    elif out == 'table':
+        df = pd.DataFrame.from_dict(d, orient='index').transpose()
+
+    return df
+
+
+def parse_go_results(df, cell_type='cell_type', top=20, out='table', tag='', dataset=''):
+    """
+    Return:
+        a term gene dataframe: each column is a term
+        a term cluster dataframe: each column is a term
+    """
+    term_genes = {}
+    term_clusters = {}
+    for c in np.unique(df[cell_type]):
+        terms = df[df[cell_type]==c]['Term'].values
+        for term in terms[:top]:
+            if term not in term_clusters:
+                term_clusters[term] = []
+            
+            term_clusters[term].append(c)
+
+            if term not in term_genes:
+                term_genes[term] = find_go_term_gene(df, term)
+
+    # for term, clusters in term_clusters.items():
+    #     term_clusters[term] = tag+';'.join(clusters)
+
+    if out == 'dict':
+        return term_genes, term_clusters
+    else:
+        term_genes = format_dict_of_list(term_genes, out=out)
+        index = [(k, dataset, tag+';'.join(v)) for k, v in term_clusters.items()]
+        term_genes.columns = pd.MultiIndex.from_tuples(index, names=['Pathway', 'Dataset', 'Cluster'])
+        return term_genes
+
+
+def merge_all_go_results(path, datasets=[], top=20):
+    """
+    The go results should organized by path/datasets/go_results.csv
+    Args: 
+        path is the input to store all the go results
+        datasets are selected to merge
+    """
+    df_list = []
+    for dataset in datasets:
+        path2 = os.path.join(path, dataset)
+        for filename in os.listdir(path2):
+            if 'go_results' in filename:
+                name = filename.replace('.csv', '')
+                path3 = os.path.join(path2, filename)
+                df = pd.read_csv(path3, index_col=0)
+                term_genes = parse_go_results(df, dataset=dataset, tag=name, top=top)
+                df_list.append(term_genes)
+    concat_df = pd.concat(df_list, axis=1).sort_index(axis=1, level='Pathway')
+    return concat_df
