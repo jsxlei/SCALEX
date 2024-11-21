@@ -200,8 +200,7 @@ def parse_go_results(df, cell_type='cell_type', top=20, out='table', tag='', dat
             if term not in term_genes:
                 term_genes[term] = find_go_term_gene(df, term)
 
-    # for term, clusters in term_clusters.items():
-    #     term_clusters[term] = tag+';'.join(clusters)
+    tag = tag + ':' if tag else ''
 
     if out == 'dict':
         return term_genes, term_clusters
@@ -212,7 +211,7 @@ def parse_go_results(df, cell_type='cell_type', top=20, out='table', tag='', dat
         return term_genes
 
 
-def merge_all_go_results(path, datasets=[], top=20):
+def merge_all_go_results(path, datasets=[], top=20, out_dir=None):
     """
     The go results should organized by path/datasets/go_results.csv
     Args: 
@@ -230,4 +229,9 @@ def merge_all_go_results(path, datasets=[], top=20):
                 term_genes = parse_go_results(df, dataset=dataset, tag=name, top=top)
                 df_list.append(term_genes)
     concat_df = pd.concat(df_list, axis=1).sort_index(axis=1, level='Pathway')
+    if out_dir is not None:
+        os.makedirs(out_dir, exist_ok=True)
+        with pd.ExcelWriter(os.path.join(out_dir, 'merge_go.xlsx'), engine='openpyxl') as writer:
+            concat_df.to_excel(writer, sheet_name='Sheet1')
+        # concat_df.to_csv(save)
     return concat_df
