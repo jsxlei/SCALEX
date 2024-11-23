@@ -3,6 +3,7 @@ import scanpy as sc
 import pandas as pd
 import numpy as np
 from gseapy import barplot, dotplot
+import gseapy as gp
 import matplotlib.pyplot as plt
 
 macrophage_markers = {
@@ -211,7 +212,7 @@ def parse_go_results(df, cell_type='cell_type', top=20, out='table', tag='', dat
         return term_genes
 
 
-def merge_all_go_results(path, datasets=[], top=20, out_dir=None):
+def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=True, reference='GO_Biological_Process_2023', organism='human'):
     """
     The go results should organized by path/datasets/go_results.csv
     Args: 
@@ -219,6 +220,8 @@ def merge_all_go_results(path, datasets=[], top=20, out_dir=None):
         datasets are selected to merge
     """
     df_list = []
+    if datasets is None:
+        datasets = [i for i in os.listdir(path) if os.path.isdir(os.path.join(path, i))]
     for dataset in datasets:
         path2 = os.path.join(path, dataset)
         for filename in os.listdir(path2):
@@ -228,7 +231,18 @@ def merge_all_go_results(path, datasets=[], top=20, out_dir=None):
                 df = pd.read_csv(path3, index_col=0)
                 term_genes = parse_go_results(df, dataset=dataset, tag=name, top=top)
                 df_list.append(term_genes)
-    concat_df = pd.concat(df_list, axis=1).sort_index(axis=1, level='Pathway')
+    concat_df = pd.concat(df_list, axis=1)
+
+    if add_ref: 
+        go_ref = gp.get_library(name=reference, organism=organism)
+        go_ref = format_dict_of_list(go_ref)
+        pathways = [i for i in concat_df.columns.get_level_values('Pathway').unique() if i in go_ref.columns]
+        go_ref = go_ref.loc[:, pathways]
+        index_tuples = [ (i, 'GO_Biological_Process_2023', 'reference') for i in go_ref.columns ] 
+        go_ref.columns = pd.MultiIndex.from_tuples(index_tuples, names=['Pathway', 'Dataset', 'Cluster'])
+        concat_df = pd.concat([concat_df, go_ref], axis=1)
+
+    concat_df = concat_df.sort_index(axis=1, level='Pathway')
     if out_dir is not None:
         os.makedirs(out_dir, exist_ok=True)
         with pd.ExcelWriter(os.path.join(out_dir, 'merge_go.xlsx'), engine='openpyxl') as writer:
