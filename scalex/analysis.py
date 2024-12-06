@@ -76,11 +76,12 @@ def annotate(
     color = [i for i in color if i in adata.obs.columns]
     sc.pl.umap(adata, color=color, legend_loc='on data', legend_fontsize=10)
 
+    var_names = adata.raw.var_names if adata.raw is not None else adata.var_names
     if cell_type_markers is not None:
         if isinstance(cell_type_markers, str):
             if cell_type_markers == 'macrophage':
                 cell_type_markers = macrophage_markers
-        cell_type_markers_ = {k: [i for i in v if i in adata.raw.var_names] for k,v in cell_type_markers.items() }
+        cell_type_markers_ = {k: [i for i in v if i in var_names] for k,v in cell_type_markers.items() }
         sc.pl.dotplot(adata, cell_type_markers_, groupby=cell_type, standard_scale='var', cmap='coolwarm')
     
     sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
@@ -244,8 +245,11 @@ def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=True
 
     concat_df = concat_df.sort_index(axis=1, level='Pathway')
     if out_dir is not None:
-        os.makedirs(out_dir, exist_ok=True)
-        with pd.ExcelWriter(os.path.join(out_dir, 'merge_go.xlsx'), engine='openpyxl') as writer:
+        dirname = os.path.dirname(out_dir)
+        os.makedirs(dirname, exist_ok=True)
+        if not out_dir.endswith('xlsx'):
+            out_dir = out_dir + '.xlsx'
+        with pd.ExcelWriter(out_dir, engine='openpyxl') as writer:
             concat_df.to_excel(writer, sheet_name='Sheet1')
         # concat_df.to_csv(save)
     return concat_df
