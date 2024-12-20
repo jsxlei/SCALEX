@@ -24,6 +24,7 @@ from sklearn.preprocessing import maxabs_scale, MaxAbsScaler
 from glob import glob
 
 DATA_PATH = os.path.expanduser("~")+'/.scalex/'
+GENOME_PATH = os.path.expanduser("~")+'/.cache/genome/'
 CHUNK_SIZE = 20000
 
 
@@ -476,6 +477,23 @@ def reindex(adata, genes, chunk_size=CHUNK_SIZE):
             # new_X[i*chunk_size:(i+1)*chunk_size, idx] = adata[i*chunk_size:(i+1)*chunk_size, genes[idx]].X
         adata = AnnData(new_X.tocsr(), obs=adata.obs, var=pd.DataFrame(index=genes)) #{'var_names':genes}) 
     return adata
+
+
+def convert_mouse_to_human(adata):
+    """
+    Convert mouse gene names to human gene names
+    """
+    mapping_file = os.path.join(GENOME_PATH, 'mm10', 'mouse_human_gene_mapping.txt')
+    mappings = pd.read_csv(mapping_file, sep='\t')
+
+    map_dict = mappings.set_index('mouse')['human'].to_dict()
+    adata2 = adata[:, pd.notna(adata.var.index.map(map_dict))].copy()
+    adata2.var['human'] = adata2.var_names.map(map_dict)
+    adata2.var['mouse'] = adata2.var_names
+    adata2.var_names = adata2.var['human'].values
+    adata2.var_names = adata2.var_names.astype(str)
+    adata2.var_names_make_unique()
+    return adata2
 
 
 class BatchSampler(Sampler):

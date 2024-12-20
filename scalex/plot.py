@@ -396,3 +396,368 @@ def plot_confusion(y, y_pred, save=None, cmap='Blues'):
         plt.show()
     
     return f1, nmi, ari
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_subplots(n_panels, ncols=3):
+    """
+    Plot subplots dynamically based on the number of panels and columns.
+
+    Parameters:
+        n_panels (int): Total number of panels to display.
+        ncols (int): Number of columns for the layout.
+    """
+    # Calculate the number of rows needed
+    nrows = (n_panels + ncols - 1) // ncols  # Ceiling division
+
+    # Create subplots
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(ncols * 4, nrows * 3))
+
+    # Flatten the axes array for easy indexing
+    axes = np.array(axes).reshape(-1)
+
+    # Plot data in each panel
+    for i in range(n_panels):
+        ax = axes[i]
+        ax.plot(np.random.rand(10), label=f'Panel {i+1}')
+        ax.set_title(f'Panel {i+1}')
+        ax.legend()
+
+    # Hide empty panels
+    for ax in axes[n_panels:]:
+        ax.remove()
+
+    # Adjust layout
+    plt.tight_layout()
+    plt.show()
+
+# Example usage
+# plot_subplots(n_panels=10, ncols=3)
+
+
+import os
+from configparser import ConfigParser
+genome_dir = os.path.join(os.path.expanduser("~"), '.cache', 'genome')
+hg38_dir = os.path.join(genome_dir, 'hg38')
+GTF_FILE =  os.path.join(hg38_dir, 'gencode.v41.annotation.gtf.gz')
+TSS_FILE = os.path.join(hg38_dir, 'tss.tsv')
+
+import pandas as pd
+import pyranges as pr
+
+def strand_specific_start_site(df):
+    df = df.copy()
+    if set(df["Strand"]) != set(["+", "-"]):
+        raise ValueError("Not all features are strand specific!")
+
+    pos_strand = df.query("Strand == '+'").index
+    neg_strand = df.query("Strand == '-'").index
+    df.loc[pos_strand, "End"] = df.loc[pos_strand, "Start"] + 1
+    df.loc[neg_strand, "Start"] = df.loc[neg_strand, "End"] - 1
+    return df
+
+
+def parse_tss(tss_file=TSS_FILE, gtf_file=GTF_FILE, drop_duplicates: str='gene_name') -> pr.PyRanges:
+    """
+    The transcription start sites (TSS) for the genome.
+
+    Returns
+    -------
+    DataFrame
+    """
+    if tss_file is None or not os.path.exists(tss_file):
+        gtf = pr.read_gtf(gtf_file).df.drop_duplicates(subset=[drop_duplicates], keep='first')
+        tss = strand_specific_start_site(gtf)[['Chromosome', 'Start', 'End', 'Strand', drop_duplicates]]
+        if tss_file is not None:
+            os.makedirs(os.path.dirname(tss_file), exist_ok=True)
+            tss.to_csv(tss_file, sep='\t', index=False)
+    else:
+        tss = pd.read_csv(tss_file, sep='\t')
+    return tss
+
+
+class Track:
+    def __init__(self, genome='hg38', fig_dir='./'):
+        self.config = ConfigParser()
+        self.spacer_kws = {"file_type": "spacer", "height": 0.5, "title": ""}
+        self.config.add_section("spacer")
+
+        self.link_kws = {
+            "links_type": "arcs", "line_width": 0.5, "line_style": "solid",
+            "compact_arcs_level": 2, "use_middle": False, "file_type": "links"
+        }
+
+        self.bigwig_kws = {
+            "file_type": "bigwig",
+            "min_value": 0,
+            "max_value": 10, #'auto',
+            "height": 1
+        }
+
+        self.tss = parse_tss()
+
+        # import matplotlib.pyplot as plt
+        self.cell_type_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
+                            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',]
+
+        self.fig_dir = fig_dir
+
+    def empty_config(self):
+        self.config = ConfigParser()
+        self.config.add_section("spacer")
+
+    def add_link(self, links, name, color='darkgreen', height=1.2, **kwargs):
+        self.link_kws.update(kwargs)
+
+        if not os.path.isfile(links):
+            link_file = os.path.join(self.fig_dir, f"{name}.links")
+            links.to_csv(link_file, sep='\t', index=None, header=None)
+        else:
+            link_file = links
+        self.config[name] = {
+            "file": link_file, 
+            "title": name, 
+            "color": color, 
+            "height": height, 
+            **link_kws
+        }
+
+    def add_bed(self, peaks, name, display="collapsed", border_color="none", labels=False, **kwargs):
+        pass
+
+    def add_bigwig(self, bigwigs, **kwargs):
+        for i, (name, bigwig) in enumerate(bigwigs.items()):
+            bigwig_kws = self.bigwig_kws.copy()
+            bigwig_kws.update(kwargs)
+
+            self.config[name] = {
+                "file": bigwig,
+                "title": name,
+                "color": self.cell_type_colors[i],
+                # "height": 1,
+                **bigwig_kws
+            }
+
+        self.config["spacer2"] = self.spacer_kws
+
+    def add_gene_annotation(self, gene, **kwargs):
+        # gene annotation
+        self.config["Genes"] = {
+            "file": GTF_FILE, 
+            "title": "Genes", 
+            "prefered_name": "gene_name", 
+            "merge_transcripts": True,
+            "fontsize": 4, 
+            "height": 5, 
+            "labels": True, 
+            "max_labels": 100,
+            "all_labels_inside": True, 
+            "labels_in_margin": True,
+            "style": "UCSC", 
+            "file_type": "gtf",
+            # "max_value": max_value
+        }
+
+    def generate_track(self, region, extend=50_000, dpi=200, width=12, fontsize=4):
+        with open(f"{self.fig_dir}/tracks.ini", "w") as f:
+            self.config.write(f)
+
+        if isinstance(region, str):
+            region = self.get_region_with_gene(region)
+        Chromosome, Start, End = region
+        Start -= extend
+        End += extend
+        cmd = f"pyGenomeTracks --tracks {self.fig_dir}/tracks.ini --region {Chromosome}:{Start}-{End} \
+                -t ' ' --dpi {dpi} --width {width} --fontSize {fontsize} \
+                --outFileName {self.fig_dir}/tracks.png" # 2> /dev/null"
+        import subprocess
+        subprocess.run(cmd, shell=True, check=True)
+
+    def get_region_with_gene(self, gene):
+        return self.tss.query(f"gene_name == '{gene}'")[['Chromosome', 'Start', 'End']].values[0]
+    
+    def plot(self, gene, bigwigs, extend=50_000, dpi=200, width=12, fontsize=4, **bigwig_kws):
+        self.empty_config()
+        self.add_bigwig(bigwigs, **bigwig_kws)
+        self.add_gene_annotation(gene)
+        self.generate_track(gene, extend, dpi, width, fontsize)
+        from IPython.display import Image
+        return Image(filename=f"{self.fig_dir}/tracks.png")
+
+
+def plot_tracks(
+        gene, region, 
+        peaks=None, 
+        bigwigs=None,
+        links={}, 
+        all_link=None, 
+        all_link_kwargs={},
+        meta_gr=None, 
+        extend=100000, 
+        dpi=200,
+        width=12,
+        fontsize=4,
+        fig_dir='./',
+        bigwig_max_value='auto'
+    ):
+    fig_dir = os.path.join(fig_dir, gene)
+    os.makedirs(fig_dir, exist_ok=True)
+
+    config = ConfigParser()
+    spacer_kws = {"file_type": "spacer", "height": 0.5, "title": ""}
+    config.add_section("spacer")
+    
+    # links
+    link_kws = {
+        "links_type": "arcs", "line_width": 0.5, "line_style": "solid",
+        "compact_arcs_level": 2, "use_middle": False, "file_type": "links"
+    }
+    for name, link in links.items():
+        name = name.replace(' ', '_')
+        if not os.path.isfile(link):
+            link_file = os.path.join(fig_dir, f"{name}.links")
+            link.to_csv(link_file, sep='\t', index=None, header=None)
+        else:
+            link_file = link
+        config[name] = {
+            "file": link_file, 
+            "title": name, 
+            "color": "darkgreen", 
+            "height": 1.2, 
+            **link_kws
+        }
+
+    if all_link is not None:
+        all_links = all_link.query(f"gene == '{gene}'").copy()
+
+        for name, kwargs in all_link_kwargs.items():
+            link = all_links.loc[:, [*all_link.columns[:6], name]]
+            if 'cutoff' in kwargs:
+                cutoff = kwargs['cutoff']
+                link = link[(link[name] > cutoff) | (link[name] < -cutoff)]
+            else:
+                link = link[link[name] == True]
+
+            name = name.replace(' ', '_')
+            link.to_csv(os.path.join(fig_dir, f'{name}.links'), sep='\t', index=None, header=None)
+            config[name] = {
+                "file": os.path.join(fig_dir, f"{name}.links"), 
+                "title": name, 
+                "color": "darkgreen", 
+                "height": 1.2, 
+                **link_kws,
+                **kwargs
+            }                        
+
+        
+
+    # peak
+    bed_kws = {
+        "display": "collapsed", "border_color": "none",
+        "labels": False, "file_type": "bed"
+    }
+    if peaks is not None:
+        for name, peak in peaks.items():
+            peak.to_csv(os.path.join(fig_dir, f"{name}.bed"), sep='\t', index=None, header=None)
+            config[name] = {
+                "file": os.path.join(fig_dir, f"{name}.bed"),
+                "title": name, 
+                **bed_kws
+            }
+    
+    config["spacer1"] = spacer_kws
+
+
+    # atac bigwig
+    cell_type_kws = {
+        "file_type": "bigwig"
+    }
+
+    # import matplotlib.pyplot as plt
+    cell_type_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
+                        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',]
+    
+    if meta_gr is not None:
+        cell_types = meta_gr.df.columns[3:]
+        chromsizes = get_chromsize()
+        chroms = meta_gr.df['Chromosome'].unique()
+        if len(set(chroms) - set(chromsizes.df['Chromosome'].values)) > 0:
+            import pyranges as pr
+            meta_gr = meta_gr.df[meta_gr.df['Chromosome'].isin(chromsizes.df['Chromosome'].values)]
+            meta_gr = pr.PyRanges(meta_gr)
+        os.makedirs(os.path.join(fig_dir ,'bw'), exist_ok=True)
+        for i, c in enumerate(cell_types):
+            d = c
+            c = c.replace(' ', '_')
+            if not os.path.isfile(os.path.join(fig_dir, 'bw', f"{c}.bw")):
+                meta_gr.to_bigwig(os.path.join(fig_dir, 'bw', f'{c}.bw'), chromosome_sizes=chromsizes, value_col=d, rpm=False)
+
+            config[f"meta {c}"] = {
+                "file": os.path.join(fig_dir, 'bw', f"{c}.bw"),
+                "title": f"{c}",
+                "color": cell_type_colors[i],
+                "height": 1,
+                "min_value": 0, 
+                # "max_value": meta_max_value, 
+                **cell_type_kws
+            }
+
+    if bigwigs is not None:
+        i = 0
+        for name, bigwig in bigwigs.items():
+            
+            config[name] = {
+                "file": bigwig,
+                "title": name,
+                "color": cell_type_colors[i+1],
+                "height": 1,
+                "min_value": 0, 
+                "max_value": bigwig_max_value, 
+                **cell_type_kws
+            }
+            i+=1
+
+    config["spacer2"] = spacer_kws
+    
+    if not os.path.isfile(GTF_FILE): 
+        if os.path.exists(os.path.dirname(GTF_FILE)):
+            os.makedirs(os.path.dirname(GTF_FILE), exist_ok=True)
+        import wget
+        wget.download("https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.annotation.gtf.gz", GTF_FILE)
+    # gene annotation
+    config["Genes"] = {
+        "file": GTF_FILE, 
+        "title": "Genes", 
+        "prefered_name": "gene_name", 
+        "merge_transcripts": True,
+        "fontsize": fontsize, 
+        "height": 5, 
+        "labels": True, 
+        "max_labels": 100,
+        "all_labels_inside": True, 
+        "labels_in_margin": True,
+        "style": "UCSC", 
+        "file_type": "gtf",
+        # "max_value": max_value
+    }
+
+    config["x-axis"] = {"fontsize": fontsize}
+    with open(f"{fig_dir}/tracks.ini", "w") as f:
+        config.write(f)
+
+    Chromosome, Start, End = region
+    Start -= extend
+    End += extend
+    cmd = f"pyGenomeTracks --tracks {fig_dir}/tracks.ini --region {Chromosome}:{Start}-{End} \
+        -t 'Target gene: {gene}' --dpi {dpi} --width {width} --fontSize {fontsize} \
+        --outFileName {fig_dir}/tracks.png" # 2> /dev/null"
+    import subprocess
+    subprocess.run(cmd, shell=True, check=True)
+
+    print(f"{fig_dir}/tracks.png")

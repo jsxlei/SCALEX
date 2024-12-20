@@ -1,5 +1,11 @@
 # Changelog
 
+## [Dec 20, 2024]
+### Added
+- Add plot track in plot.py
+- Add cache genome folder .cache/genome/
+- Add gene_sets for annotate in analysis.py
+
 ## [October 18, 2024]
 
 ### Added

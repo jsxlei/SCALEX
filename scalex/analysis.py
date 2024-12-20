@@ -17,14 +17,15 @@ macrophage_markers = {
     'pDC': ['IRF7', 'CLEC4C', 'TCL1A'], #['IRF8', 'PLD4', 'MPEG1'],
     'epithelial': ['KRT8'],
     'cancer cells': ['EPCAM'],
-    # 'neutrophils': ['SOD2',  'GOS2'],
+    'neutrophils': ['FCGR3B', 'CSF3R', 'CXCR2', 'SOD2',  'GOS2'],
     'cDC1': ['CLEC9A'],
     'cDC2': ['FCER1A', 'CD1C', 'CD1E', 'CLEC10A'],
     'migratoryDC': ['BIRC3', 'CCR7', 'LAMP3'],
     'follicular DC': ['FDCSP'],
+    'DC': ['CLEC9A', 'XCR1', 'CD1C', 'CD1A', 'LILRA4'],
     'CD207+ DC': ['CD1A', 'CD207'], # 'FCAR1A'],
-    'Monocyte': ['FCGR3A', 'VCAN'],
-    'Macrophage': ['C1QA', 'APOE', 'TREM2', 'MARCO', 'CD68'],
+    'Monocyte': ['FCGR3A', 'VCAN', 'SELL', 'CDKN1C', 'MTSS1'],
+    'Macrophage': ['C1QA', 'APOE', 'TREM2', 'MARCO', 'MCR1', 'CD68', 'CD163', 'CD206', 'CCL2', 'CCL3', 'CCL4'],
     'Macro SPP1+': ['SPP1', 'LPL', 'MGLL', 'FN1'], # IL4I1
     'Macro SELENOP': ['SEPP1', 'SELENOP', 'FOLR2'], # 'RNASE1',
     'Macro FCN1+': ['FCN1', 'S100A9', 'S100A8'], # NLRP3
@@ -67,6 +68,7 @@ def annotate(
     color = ['cell_type', 'leiden', 'tissue', 'donor'],
     cell_type_markers='macrophage', #None, 
     show_markers=False,
+    gene_sets='GO_Biological_Process_2021',
     n_tops = [100],
     additional={},
     go=True,
@@ -101,9 +103,9 @@ def annotate(
         if go:
             for option in ['pos', 'neg']:
                 if option == 'pos':
-                    go_results = enrich_analysis(marker.head(n_top))
+                    go_results = enrich_analysis(marker.head(n_top), gene_sets=gene_sets)
                 else:
-                    go_results = enrich_analysis(marker.tail(n_top))
+                    go_results = enrich_analysis(marker.tail(n_top), gene_sets=gene_sets)
             
                 go_results['cell_type'] = 'leiden_' + go_results['cell_type']
                 n = go_results['cell_type'].nunique()
@@ -122,6 +124,7 @@ def annotate(
                         )
                 if out_dir is not None:
                     os.makedirs(out_dir, exist_ok=True)
+                    go_results = go_results.sort_values('Adjusted P-value', ascending=False).groupby('cell_type').head(10)
                     go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/{option}_go_results_{n_top}.csv')
                 plt.show()
         
@@ -213,7 +216,7 @@ def parse_go_results(df, cell_type='cell_type', top=20, out='table', tag='', dat
         return term_genes
 
 
-def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=True, reference='GO_Biological_Process_2023', organism='human'):
+def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=False, union=True, reference='GO_Biological_Process_2023', organism='human'):
     """
     The go results should organized by path/datasets/go_results.csv
     Args: 
@@ -234,7 +237,7 @@ def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=True
                 df_list.append(term_genes)
     concat_df = pd.concat(df_list, axis=1)
 
-    if add_ref: 
+    if add_ref and not union: 
         go_ref = gp.get_library(name=reference, organism=organism)
         go_ref = format_dict_of_list(go_ref)
         pathways = [i for i in concat_df.columns.get_level_values('Pathway').unique() if i in go_ref.columns]
@@ -244,12 +247,21 @@ def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=True
         concat_df = pd.concat([concat_df, go_ref], axis=1)
 
     concat_df = concat_df.sort_index(axis=1, level='Pathway')
+
+    if union:
+        concat_df = concat_df.groupby(level=["Pathway"], axis=1)
+        concat_dict = {name:  [i for i in set(group.values.flatten()) if pd.notnull(i)] for name, group in concat_df}
+        concat_df = pd.DataFrame.from_dict(concat_dict, orient='index').transpose()
+
     if out_dir is not None:
         dirname = os.path.dirname(out_dir)
         os.makedirs(dirname, exist_ok=True)
-        if not out_dir.endswith('xlsx'):
-            out_dir = out_dir + '.xlsx'
-        with pd.ExcelWriter(out_dir, engine='openpyxl') as writer:
-            concat_df.to_excel(writer, sheet_name='Sheet1')
-        # concat_df.to_csv(save)
+
+        if not union:
+            if not out_dir.endswith('xlsx'):
+                out_dir = out_dir + '.xlsx'
+            with pd.ExcelWriter(out_dir, engine='openpyxl') as writer:
+                concat_df.to_excel(writer, sheet_name='Sheet1')
+        else:
+            concat_df.to_csv(out_dir, index=False)
     return concat_df
