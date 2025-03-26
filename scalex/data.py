@@ -20,6 +20,9 @@ from torch.utils.data import DataLoader
 from anndata import AnnData
 import scanpy as sc
 from sklearn.preprocessing import maxabs_scale, MaxAbsScaler
+from pathlib import Path
+import logging
+
 
 from glob import glob
 
@@ -316,7 +319,6 @@ def preprocessing_atac(
     -------
     The AnnData object after preprocessing.
     """
-    import episcanpy as epi
     
     if min_features is None: min_features = 100
     if n_top_features is None: n_top_features = 100000
@@ -340,15 +342,21 @@ def preprocessing_atac(
     if log: log.info('Finding variable features')
     if type(n_top_features) == int and n_top_features>0 and n_top_features < adata.shape[1]:
         # sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch', inplace=False, subset=True)
-        epi.pp.select_var_feature(adata, nb_features=n_top_features, show=False, copy=False)
+        # epi.pp.select_var_feature(adata, nb_features=n_top_features, show=False, copy=False)
+        # try:
+        #     import snapatac2 as snap
+        #     snap.pp.select_features(adata, n_top_features, inplace=True)
+        # except:
+        from .atac.snapatac2._basic import select_features
+        select_features(adata, n_top_features, inplace=True)
+        adata = adata[:, adata.var['selected']].copy()
+        print(adata.shape)
     elif type(n_top_features) != int:
         adata = reindex(adata, n_top_features)
 
     
     # if log: log.info('Normalizing total per cell')
     # if target_sum != -1:
-    
-
         
     if log: log.info('Batch specific maxabs scaling')
     # adata = batch_scale(adata, chunk_size=chunk_size)
@@ -731,3 +739,9 @@ def download_file(url, local_filename):
         print(f"File downloaded successfully: {local_filename}")
     except Exception as e:
         print(f"An error occurred while downloading the file: {e}")
+
+
+def rank_dict(adata, cell_type=None):
+    if 'rank_genes_groups' not in adata.uns:
+        sc.tl.rank_genes_groups(adata, cell_type)
+    return pd.DataFrame(adata.uns['rank_genes_groups']['names']).head().to_dict(orient='list')

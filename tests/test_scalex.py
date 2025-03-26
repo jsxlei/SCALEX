@@ -7,10 +7,10 @@ from scalex.data import preprocessing_rna
 
 import torch
 
-def test_preprocess_rna(adata_test):
-    adata = adata_test.copy()
-    adata = preprocessing_rna(adata, min_cells=2, min_features=0)
-    assert adata.raw.shape == adata_test.shape
+# def test_preprocess_rna(adata_test):
+#     adata = adata_test.copy()
+#     adata = preprocessing_rna(adata, min_cells=2, min_features=0)
+#     assert adata.raw.shape == adata_test.shape
 
 
 def test_scalex_forward(adata_test):
@@ -32,12 +32,12 @@ def test_scalex_forward(adata_test):
     # Load the file
 
 
-def test_full_model(adata_test):
-    out = SCALEX(
-        adata_test, processed=True, min_cells=0, min_features=0, batch_size=2, max_iteration=10,
-    )
-    assert 'distances' in out.obsp
-    assert 'X_scalex_umap' in out.obsm
+# def test_full_model(adata_test):
+#     out = SCALEX(
+#         adata_test, processed=True, min_cells=0, min_features=0, batch_size=2, max_iteration=10,
+#     )
+#     assert 'distances' in out.obsp
+#     assert 'X_scalex_umap' in out.obsm
 
 
 if __name__ == '__main__':

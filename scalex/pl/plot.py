@@ -217,7 +217,7 @@ def plot_meta(
 def plot_meta2(
         adata, 
         use_rep='latent', 
-        color='cell_type', 
+        color='celltype', 
         batch='batch', 
         color_map=None, 
         figsize=(10, 10), 
@@ -317,19 +317,7 @@ def plot_meta2(
     else:
         plt.show()
         
-
-def plot_agg_heatmap(adata, genes, cell_type='cell_type', **kwargs):
-    import anndata
-    adata_agg = adata.raw.to_adata() if adata.raw is not None else adata
-    df = adata_agg.to_df()
-    df[cell_type] = adata_agg.obs[cell_type]
-    df_agg = df.groupby(cell_type).mean()
-    df_ann = anndata.AnnData(df_agg)
-    
-    df_ann.obs['groupby'] = df_agg.index
-    
-    sc.pl.heatmap(df_ann, genes, groupby='groupby', show_gene_labels=True, **kwargs)
-     
+        
         
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, f1_score
@@ -495,12 +483,10 @@ def parse_tss(tss_file=TSS_FILE, gtf_file=GTF_FILE, drop_duplicates: str='gene_n
 
 
 class Track:
-    def __init__(self, genome='hg38', fig_dir='./', cell_type_colors=None):
+    def __init__(self, genome='hg38', fig_dir='./'):
         self.config = ConfigParser()
         self.spacer_kws = {"file_type": "spacer", "height": 0.5, "title": ""}
-        self.line_kws = {"line_width": 0.5, "line_style": "solid", "file_type": "hlines"} 
-
-        # self.config.add_section("spacer")
+        self.config.add_section("spacer")
 
         self.link_kws = {
             "links_type": "arcs", "line_width": 0.5, "line_style": "solid",
@@ -511,8 +497,7 @@ class Track:
             "file_type": "bigwig",
             "min_value": 0,
             "max_value": 10, #'auto',
-            "height": 1,
-            "grid": "true",
+            "height": 1
         }
 
         self.tss = parse_tss()
@@ -521,13 +506,13 @@ class Track:
         self.cell_type_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
                             '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
                             '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-                            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',] if cell_type_colors is None else cell_type_colors
+                            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',]
 
         self.fig_dir = fig_dir
 
     def empty_config(self):
         self.config = ConfigParser()
-        # self.config.add_section("spacer")
+        self.config.add_section("spacer")
 
     def add_link(self, links, name, color='darkgreen', height=1.2, **kwargs):
         self.link_kws.update(kwargs)
@@ -542,7 +527,7 @@ class Track:
             "title": name, 
             "color": color, 
             "height": height, 
-            # **link_kws
+            **link_kws
         }
 
     def add_bed(self, peaks, name, display="collapsed", border_color="none", labels=False, **kwargs):
@@ -552,7 +537,7 @@ class Track:
         for i, (name, bigwig) in enumerate(bigwigs.items()):
             bigwig_kws = self.bigwig_kws.copy()
             bigwig_kws.update(kwargs)
-            # print(bigwig_kws)
+
             self.config[name] = {
                 "file": bigwig,
                 "title": name,
@@ -560,9 +545,8 @@ class Track:
                 # "height": 1,
                 **bigwig_kws
             }
-        # self.config["spacer2"] = self.spacer_kws
-        # self.config['hline'] = self.line_kws
 
+        self.config["spacer2"] = self.spacer_kws
 
     def add_gene_annotation(self, gene, **kwargs):
         # gene annotation
@@ -572,7 +556,7 @@ class Track:
             "prefered_name": "gene_name", 
             "merge_transcripts": True,
             "fontsize": 4, 
-            "height": 1, 
+            "height": 5, 
             "labels": True, 
             "max_labels": 100,
             "all_labels_inside": True, 
@@ -582,34 +566,31 @@ class Track:
             # "max_value": max_value
         }
 
-    def generate_track(self, region, up=0, down=0, dpi=200, width=8, fontsize=4, save_dir='./'):
-        with open(f"{save_dir}/tracks.ini", "w") as f:
+    def generate_track(self, region, extend=50_000, dpi=200, width=12, fontsize=4):
+        with open(f"{self.fig_dir}/tracks.ini", "w") as f:
             self.config.write(f)
 
         if isinstance(region, str):
             region = self.get_region_with_gene(region)
         Chromosome, Start, End = region
-        Start -= up
-        End += down
-        cmd = f"pyGenomeTracks --tracks {save_dir}/tracks.ini --region {Chromosome}:{Start}-{End} \
+        Start -= extend
+        End += extend
+        cmd = f"pyGenomeTracks --tracks {self.fig_dir}/tracks.ini --region {Chromosome}:{Start}-{End} \
                 -t ' ' --dpi {dpi} --width {width} --fontSize {fontsize} \
-                --outFileName {save_dir}/tracks.pdf" # 2> /dev/null"
+                --outFileName {self.fig_dir}/tracks.png" # 2> /dev/null"
         import subprocess
         subprocess.run(cmd, shell=True, check=True)
 
     def get_region_with_gene(self, gene):
         return self.tss.query(f"gene_name == '{gene}'")[['Chromosome', 'Start', 'End']].values[0]
     
-    def plot_gene(self, gene, bigwigs, up=50_000, down=2000, dpi=200, width=12, fontsize=4, **bigwig_kws):
-        save_dir = os.path.join(self.fig_dir, gene)
-        os.makedirs(save_dir, exist_ok=True)
+    def plot(self, gene, bigwigs, extend=50_000, dpi=200, width=12, fontsize=4, **bigwig_kws):
         self.empty_config()
         self.add_bigwig(bigwigs, **bigwig_kws)
         self.add_gene_annotation(gene)
-        self.generate_track(gene, up, down, dpi, width, fontsize, save_dir=save_dir)
-        from IPython.display import Image, IFrame
-        # from wand.image import Image as WImage
-        return IFrame(f"{save_dir}/tracks.pdf", width=800, height=600)
+        self.generate_track(gene, extend, dpi, width, fontsize)
+        from IPython.display import Image
+        return Image(filename=f"{self.fig_dir}/tracks.png")
 
 
 def plot_tracks(

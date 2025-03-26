@@ -30,6 +30,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "leidenalg>=0.8.3",
     "gseapy",
+    "pyranges",
 ]
 
 [project.scripts]

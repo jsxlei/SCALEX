@@ -7,32 +7,32 @@ import gseapy as gp
 import matplotlib.pyplot as plt
 
 macrophage_markers = {
-    'B': ['CD79A',  'IGHM'], # 'CD37',
+    'B': ['CD79A', 'CD37', 'IGHM'],
     'NK': ['GNLY', 'NKG7', 'PRF1'],
     'NKT': ['DCN', 'MGP','COL1A1'],
-    'T': ['IL32', 'CCL5', 'CD3D', 'CD3E', 'CD3G', 'CD4', 'CD8A', 'CD8B',  'CD7', 'TRAC', 'CD3D', 'TRBC2'],
+    'T': ['CD3D', 'CD3E', 'CD3G', 'CD4', 'CD8A', 'CD8B'],
     'Treg': ['FOXP3', 'CD25'], #'UBC', 'DNAJB1'],
-    # 'naive T': ['TPT1'],
+    'naive T': ['TPT1'],
     'mast': ['TPSB2', 'CPA3', 'MS4A2', 'KIT', 'GATA2', 'FOS2'],
-    'pDC': ['CLEC4C', 'TCL1A'], #['IRF7', 'IRF8', 'PLD4', 'MPEG1'],
+    'pDC': ['IRF7', 'CLEC4C', 'TCL1A'], #['IRF8', 'PLD4', 'MPEG1'],
     'epithelial': ['KRT8'],
     'cancer cells': ['EPCAM'],
     'neutrophils': ['FCGR3B', 'CSF3R', 'CXCR2', 'SOD2',  'GOS2'],
-    'DC': ['CLEC9A', 'XCR1', 'CD1C', 'CD1A', 'LILRA4'],
-    'cDC1': ['CLEC9A', 'IRF8', 'SNX3', 'XCR1'],
+    'cDC1': ['CLEC9A'],
     'cDC2': ['FCER1A', 'CD1C', 'CD1E', 'CLEC10A'],
     'migratoryDC': ['BIRC3', 'CCR7', 'LAMP3'],
     'follicular DC': ['FDCSP'],
+    'DC': ['CLEC9A', 'XCR1', 'CD1C', 'CD1A', 'LILRA4'],
     'CD207+ DC': ['CD1A', 'CD207'], # 'FCAR1A'],
-    'Monocyte': ['FCGR3A', 'CD14', 'CD16', 'VCAN', 'SELL', 'CDKN1C', 'MTSS1'],
+    'Monocyte': ['FCGR3A', 'VCAN', 'SELL', 'CDKN1C', 'MTSS1'],
     'Macrophage': ['CSF1R', 'C1QA', 'APOE', 'TREM2', 'MARCO', 'MCR1', 'CD68', 'CD163', 'CD206', 'CCL2', 'CCL3', 'CCL4'],
-    'Foamy': ['SPP1', 'GPNMB', 'LPL', 'MGLL', 'FN1', 'APOE', 'CAPG', 'CTSD', 'LGALS3', 'LGALS1'], # IL4I1# APOE covers SPP1, LPL is a subset of SPP1, while 'LGMN' is exclusive to SPP1+ macrophages
-    'Resident': ['SEPP1', 'SELENOP', 'FOLR2', 'F13A1', 'LYVE1', 'C1QA', 'C1QB', 'C1QC'], # 'RNASE1',
-    'Proliferating': ['MKI67', 'TOP2A', 'TUBB', 'SMC2'], #, 'CDK1', 'CCNB1', 'CCNB2', 'CCNA2', 'CCNE1', 'CDK2', 'CDK4', 'CDK6'],
-    'MonoMac': ['FCN1', 'S100A9', 'S100A8', 'LYZ', 'S100A4'], # NLRP3, 'PLAC8', 'MSRB1'
-    'Inflammatory': ['NFKBIA', 'IL1B', 'CXCL2', 'CXCL8', 'IER3', 'SOD2', ], 
-    # 'Inflammatory_iMacs': ['SOD2', 'CXCL9', 'ACSL1', 'SLAMF7', 'CD44', 'NAMPT', 'CXCL10', 'GBP1', 'GBP2'],
-    # 'Macro FABP4+': ['FABP4'],
+    'Macro SPP1+': ['SPP1', 'LPL', 'MGLL', 'FN1'], # IL4I1
+    'Macro SELENOP': ['SEPP1', 'SELENOP', 'FOLR2'], # 'RNASE1',
+    'Macro FCN1+': ['FCN1', 'S100A9', 'S100A8'], # NLRP3
+    'Macro IL32+': ['IL32', 'CCL5', 'CD7', 'TRAC', 'CD3D', 'TRBC2', 'IGHG1', 'IGKC'], 
+    'Macro APOE+': ['C1QC', 'APOE', 'GPNMB', 'LGMN'], # C1QC > APOE
+    'Macro IL1B': ['NFKBIA', 'CXCL8', 'IER3', 'SOD2', 'IL1B'], 
+    'Macro FABP4+': ['FABP4'],
 }
 
 def enrich_analysis(gene_names, organism='hsapiens', gene_sets='GO_Biological_Process_2023', cutoff=0.05, **kwargs): # gene_sets="GO_Biological_Process_2021"
@@ -69,33 +69,6 @@ def enrich_analysis(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
     return results_filtered
 
 
-def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Process_2023', cutoff=0.05, out_dir=None, **kwargs):
-    go_results = enrich_analysis(gene_names, organism=organism, gene_sets=gene_sets, cutoff=cutoff, **kwargs)
-    # go_results['cell_type'] = 'leiden_' + go_results['cell_type']
-    n = go_results['cell_type'].nunique()
-    ax = dotplot(go_results,
-            column="Adjusted P-value",
-            x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
-            # size=10,
-            top_term=10,
-            figsize=(0.7*n, 2*n),
-            title = f"GO_BP",  
-            xticklabels_rot=45, # rotate xtick labels
-            show_ring=False, # set to False to revmove outer ring
-            marker='o',
-            cutoff=0.05,
-            cmap='viridis'
-            )
-    if out_dir is not None:
-        os.makedirs(out_dir, exist_ok=True)
-        go_results = go_results.sort_values('Adjusted P-value', ascending=False).groupby('cell_type').head(10)
-        go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/go_results.csv')
-    plt.show()
-
-    return go_results
-
-
-
 def annotate(
     adata, 
     cell_type='leiden',
@@ -103,7 +76,7 @@ def annotate(
     cell_type_markers='macrophage', #None, 
     show_markers=False,
     gene_sets='GO_Biological_Process_2023',
-    n_tops = [], #[100],
+    n_tops = [100],
     options = ['pos'], # ['pos', 'neg']
     additional={},
     go=True,
@@ -121,8 +94,7 @@ def annotate(
                 cell_type_markers = macrophage_markers
         cell_type_markers_ = {k: [i for i in v if i in var_names] for k,v in cell_type_markers.items() }
         sc.pl.dotplot(adata, cell_type_markers_, groupby=cell_type, standard_scale='var', cmap='coolwarm')
-        sc.pl.heatmap(adata, cell_type_markers_, groupby=cell_type,  show_gene_labels=True, vmax=6)
-
+    
     sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
     sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, cmap='coolwarm', key=cell_type, standard_scale='var', figsize=(22, 5), dendrogram=False)
     marker = pd.DataFrame(adata.uns[cell_type]['names'])
@@ -144,7 +116,7 @@ def annotate(
                 else:
                     go_results = enrich_analysis(marker.tail(n_top), gene_sets=gene_sets)
             
-                go_results['cell_type'] = go_results['cell_type'].astype(str)
+                go_results['cell_type'] = 'leiden_' + go_results['cell_type']
                 n = go_results['cell_type'].nunique()
                 ax = dotplot(go_results,
                         column="Adjusted P-value",
