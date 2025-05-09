@@ -69,9 +69,10 @@ def enrich_analysis(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
     return results_filtered
 
 
-def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Process_2023', cutoff=0.05, out_dir=None, **kwargs):
+def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Process_2023', cutoff=0.05, add='', out_dir=None, **kwargs):
     go_results = enrich_analysis(gene_names, organism=organism, gene_sets=gene_sets, cutoff=cutoff, **kwargs)
-    # go_results['cell_type'] = 'leiden_' + go_results['cell_type']
+    if add:
+        go_results['cell_type'] = add + go_results['cell_type'].astype(str)
     n = go_results['cell_type'].nunique()
     ax = dotplot(go_results,
             column="Adjusted P-value",
@@ -83,16 +84,99 @@ def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
             xticklabels_rot=45, # rotate xtick labels
             show_ring=False, # set to False to revmove outer ring
             marker='o',
-            cutoff=0.05,
+            cutoff=cutoff,
             cmap='viridis'
             )
     if out_dir is not None:
         os.makedirs(out_dir, exist_ok=True)
-        go_results = go_results.sort_values('Adjusted P-value', ascending=False).groupby('cell_type').head(10)
-        go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/go_results.csv')
+        go_results = go_results.sort_values('Adjusted P-value', ascending=True).groupby('cell_type').head(20)
+        go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(os.path.join(out_dir, f'go_results.csv'))
+        plt.savefig(os.path.join(out_dir, f'go_results.pdf'))
     plt.show()
 
     return go_results
+
+
+
+def get_markers(
+        adata, 
+        groupby='cell_type',
+        pval_cutoff=0.01, 
+        logfc_cutoff=1.0,  # ~1.5 in linear scale
+        min_cells=10,
+        top_n=300,
+        processed=False,
+    ):
+    """
+    Get markers filtered by both p-value and log fold change
+    
+    Parameters:
+        logfc_cutoff: 0.58 ≈ 1.5 fold change (log2(1.5))
+                     1.0 ≈ 2 fold change (log2(2))
+    """
+    markers_dict = {}
+    clusters = adata.obs[groupby].cat.categories
+
+    if 'rank_genes_groups' not in adata.uns:
+        if not processed:
+            sc.pp.normalize_total(adata, target_sum=10000)
+            sc.pp.log1p(adata)
+        sc.tl.rank_genes_groups(adata, groupby=groupby, method='t-test')
+    
+    for cluster in clusters:
+        # Get all results for this cluster
+        df = sc.get.rank_genes_groups_df(adata, group=cluster)
+        
+        # Apply filters
+        filtered = df[
+            (df['pvals_adj'] < pval_cutoff) & 
+            (df['logfoldchanges'] > logfc_cutoff)
+        ].copy()
+        
+        markers_dict[cluster] = filtered.sort_values('scores', ascending=False).head(top_n)['names'].values
+    
+    return markers_dict
+
+
+def flatten_dict(markers):
+    flatten_markers = np.unique([item for sublist in markers.values() for item in sublist])
+    return flatten_markers
+
+
+def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None):
+    """
+    Find gene program for each cell type
+    """
+    adata = adata.copy()
+    from scalex.data import aggregate_data
+    adata_avg = aggregate_data(adata, groupby=groupby, processed=processed)
+
+    markers = get_markers(adata, groupby=groupby, processed=processed)
+    for cluster, genes in markers.items():
+        print(cluster, len(genes))
+
+    marker_list = flatten_dict(markers)
+
+    adata_avg = adata_avg[:, marker_list].copy()
+    sc.pp.scale(adata_avg, zero_center=True)
+
+    if n_clusters is None:
+        n_clusters = adata_avg.shape[0]
+
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0)
+    adata_avg.var['cluster'] = np.array(kmeans.fit_predict(adata_avg.X.T)).astype(str)
+    print(adata_avg.var)
+
+    gene_cluster_dict = adata_avg.var.groupby('cluster').groups
+    gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
+
+    
+    cluster_order = np.argsort(adata_avg.var['cluster'].values)
+    adata_avg = adata_avg[:, cluster_order]
+
+    return gene_cluster_dict, adata_avg
+
 
 
 
@@ -101,6 +185,7 @@ def annotate(
     cell_type='leiden',
     color = ['cell_type', 'leiden', 'tissue', 'donor'],
     cell_type_markers='macrophage', #None, 
+    marker_dict = None,
     show_markers=False,
     gene_sets='GO_Biological_Process_2023',
     n_tops = [], #[100],
@@ -108,6 +193,7 @@ def annotate(
     additional={},
     go=True,
     out_dir = None, #'../../results/go_and_pathway/NSCLC_macrophage/'
+    cutoff = 0.05
 ):
     
     color = [i for i in color if i in adata.obs.columns]
@@ -123,51 +209,59 @@ def annotate(
         sc.pl.dotplot(adata, cell_type_markers_, groupby=cell_type, standard_scale='var', cmap='coolwarm')
         sc.pl.heatmap(adata, cell_type_markers_, groupby=cell_type,  show_gene_labels=True, vmax=6)
 
-    sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
-    sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, cmap='coolwarm', key=cell_type, standard_scale='var', figsize=(22, 5), dendrogram=False)
-    marker = pd.DataFrame(adata.uns[cell_type]['names'])
-    marker_dict = marker.head(5).to_dict(orient='list')
-    plt.show()
+    if marker_dict is None:
+        sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
+        sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, cmap='coolwarm', key=cell_type, standard_scale='var', figsize=(22, 5), dendrogram=False)
+        marker = pd.DataFrame(adata.uns[cell_type]['names'])
+        # marker_dict = marker.head(5).to_dict(orient='list')
+        plt.show()
+    else:
+        pass
+        # sc.pl.heatmap(adata, marker_dict, groupby=cell_type, show_gene_labels=True, vmax=6)
 
     if show_markers:
         for k, v in marker_dict.items():
             print(k)
             sc.pl.umap(adata, color=v, ncols=5)
         
-    for n_top in n_tops:
-        print('-'*20+'\n', n_top, '\n'+'-'*20)
-
-        if go:
-            for option in options:
-                if option == 'pos':
-                    go_results = enrich_analysis(marker.head(n_top), gene_sets=gene_sets)
-                else:
-                    go_results = enrich_analysis(marker.tail(n_top), gene_sets=gene_sets)
+    if marker_dict is not None:
+        enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
+    elif len(n_tops) > 0:
+        for n_top in n_tops:
+            print('-'*20+'\n', n_top, '\n'+'-'*20)
+            marker_dict = marker.head(n_top).to_dict(orient='list')
+            enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
+        # if go:
+            # for option in options:
+                # if option == 'pos':
+                    # go_results = enrich_analysis(marker_dict, gene_sets=gene_sets, cutoff=cutoff)
+                # else:
+                #     go_results = enrich_analysis(marker.tail(n_top), gene_sets=gene_sets)
             
-                go_results['cell_type'] = go_results['cell_type'].astype(str)
-                n = go_results['cell_type'].nunique()
-                ax = dotplot(go_results,
-                        column="Adjusted P-value",
-                        x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
-                        # size=10,
-                        top_term=10,
-                        figsize=(0.7*n, 2*n),
-                        title = f"{option}_GO_BP_{n_top}",  
-                        xticklabels_rot=45, # rotate xtick labels
-                        show_ring=False, # set to False to revmove outer ring
-                        marker='o',
-                        cutoff=0.05,
-                        cmap='viridis'
-                        )
-                if out_dir is not None:
-                    os.makedirs(out_dir, exist_ok=True)
-                    go_results = go_results.sort_values('Adjusted P-value', ascending=False).groupby('cell_type').head(10)
-                    go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/{option}_go_results_{n_top}.csv')
-                plt.show()
+                # go_results['cell_type'] = go_results['cell_type'].astype(str)
+                # n = go_results['cell_type'].nunique()
+                # ax = dotplot(go_results,
+                #         column="Adjusted P-value",
+                #         x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
+                #         # size=10,
+                #         top_term=10,
+                #         figsize=(0.7*n, 2*n),
+                #         title = f"{option}_GO_BP_{n_top}",  
+                #         xticklabels_rot=45, # rotate xtick labels
+                #         show_ring=False, # set to False to revmove outer ring
+                #         marker='o',
+                #         cutoff=cutoff, #0.05,
+                #         cmap='viridis'
+                #         )
+                # if out_dir is not None:
+                #     os.makedirs(out_dir, exist_ok=True)
+                #     go_results = go_results.sort_values('Adjusted P-value', ascending=False).groupby('cell_type').head(10)
+                #     go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/{option}_go_results_{n_top}.csv')
+                # plt.show()
         
         for pathway_name, pathways in additional.items():
             try:
-                pathway_results = enrich_analysis(marker.head(n_top), gene_sets=pathways)
+                pathway_results = enrich_analysis(marker_dict, gene_sets=pathways)
             except:
                 continue
             ax = dotplot(pathway_results,

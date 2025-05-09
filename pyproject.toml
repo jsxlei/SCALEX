@@ -35,6 +35,7 @@ dependencies = [
 
 [project.scripts]
 SCALEX = "scalex.function:main"
+scalex = "scalex.function:main"
 
 [project.optional-dependencies]
 dev = [

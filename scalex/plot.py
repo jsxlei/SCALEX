@@ -16,7 +16,7 @@ import seaborn as sns
             
 def embedding(
         adata, 
-        color='celltype', 
+        color='cell_type', 
         color_map=None, 
         groupby='batch', 
         groups=None, 
@@ -29,6 +29,7 @@ def embedding(
         sep='_', 
         basis='X_umap',
         size=30,
+        wspace=0.5,
         n_cols=4,
         show=True,
         **kwargs
@@ -59,7 +60,7 @@ def embedding(
     """
     
     if groups is None:
-        _groups = adata.obs[groupby].cat.categories
+        _groups = adata.obs[groupby].astype('category').cat.categories
     else:
         _groups = groups
 
@@ -67,7 +68,7 @@ def embedding(
     n_plots = len(_groups)
     n_rows = (n_plots + n_cols - 1) // n_cols  # Calculate number of rows
     figsize = 4
-    wspace = 0.5
+    # wspace = 0.5
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * figsize + figsize * wspace * (n_cols - 1), n_rows * figsize)) #(5*n_cols+5, 5*n_rows))
 
     for j, ax in enumerate(axes.flatten()):
@@ -110,7 +111,10 @@ def embedding(
 
 def plot_expr(adata, gene, groupby='batch', category=None, n_cols=5, size=40, **kwargs):
     vmax = adata[:, gene].X.max() if adata.raw is None else adata.raw[:, gene].X.max()
-    batches = np.unique(adata.obs.loc[adata.obs['category'] == category, groupby])
+    if category is not None:
+        batches = np.unique(adata.obs.loc[adata.obs['category'] == category, groupby])
+    else:
+        batches = np.unique(adata.obs[groupby])
     n_plots = len(batches)  
     n_rows = (n_plots + n_cols - 1) // n_cols  # Calculate number of rows
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
@@ -130,6 +134,7 @@ def plot_expr(adata, gene, groupby='batch', category=None, n_cols=5, size=40, **
     # Show the final overlayed plot
     # plt.suptitle(gene)
     plt.show()
+
 
 def plot_meta(
         adata, 
@@ -266,7 +271,9 @@ def plot_meta2(
     meta = []
     name = []
 
-    adata.obs[color] = adata.obs[color].astype('category')
+    if adata.obs[color].dtype != 'category':
+        adata.obs[color] = adata.obs[color].astype('category')
+    
     if batches is None:
         batches = np.unique(adata.obs[batch]);#print(batches)
 
@@ -318,18 +325,6 @@ def plot_meta2(
         plt.show()
         
 
-def plot_agg_heatmap(adata, genes, cell_type='cell_type', **kwargs):
-    import anndata
-    adata_agg = adata.raw.to_adata() if adata.raw is not None else adata
-    df = adata_agg.to_df()
-    df[cell_type] = adata_agg.obs[cell_type]
-    df_agg = df.groupby(cell_type).mean()
-    df_ann = anndata.AnnData(df_agg)
-    
-    df_ann.obs['groupby'] = df_agg.index
-    
-    sc.pl.heatmap(df_ann, genes, groupby='groupby', show_gene_labels=True, **kwargs)
-     
         
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, f1_score

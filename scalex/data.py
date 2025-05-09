@@ -17,7 +17,7 @@ from torch.utils.data import Dataset
 from torch.utils.data.sampler import Sampler
 from torch.utils.data import DataLoader
 
-from anndata import AnnData
+from anndata import AnnData, concat
 import scanpy as sc
 from sklearn.preprocessing import maxabs_scale, MaxAbsScaler
 from pathlib import Path
@@ -187,13 +187,30 @@ def concat_data(
         batch_categories = list(map(str, range(len(adata_list))))
     else:
         assert len(adata_list) == len(batch_categories)
+
+    adata_concat = concat(adata_list, join=join, label=batch_key, keys=batch_categories, index_unique=index_unique)
+    return adata_concat
     # [print(b, adata.shape) for adata,b in zip(adata_list, batch_categories)]
-    concat = AnnData.concatenate(*adata_list, join=join, batch_key=batch_key,
-                                batch_categories=batch_categories, index_unique=index_unique)  
-    if save:
-        concat.write(save, compression='gzip')
-    return concat
-        
+    # concat = AnnData.concatenate(*adata_list, join=join, batch_key=batch_key,
+                                # batch_categories=batch_categories, index_unique=index_unique)  
+    # if save:
+        # concat.write(save, compression='gzip')
+    # return concat
+
+def aggregate_data(rna, groupby='cell_type', processed=False):
+    if processed:
+        if rna.raw is not None:
+            rna = rna.raw.to_adata()
+        rna_agg = sc.get.aggregate(rna, by=groupby, func='mean')
+        rna_agg.X = rna_agg.layers['mean']
+    else:
+        rna_agg = sc.get.aggregate(rna, by=groupby, func='sum')
+        rna_agg.X = rna_agg.layers['sum']
+
+        sc.pp.normalize_total(rna_agg, target_sum=1e4)
+        sc.pp.log1p(rna_agg)
+
+    return rna_agg
     
 def preprocessing_rna(
         adata: AnnData, 
@@ -241,7 +258,8 @@ def preprocessing_rna(
     # Filter out batches with only one sample
     print('min_cell_per_batch', min_cell_per_batch)
     valid_batches = batch_counts[batch_counts >= min_cell_per_batch].index
-    adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
+    if len(valid_batches) < len(batch_counts):
+        adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
     # if log: log.info('There are {} batches under batch_name: {}'.format(len(adata.obs['batch'].cat.categories), batch_name))
     if log: log.info(adata.obs['batch'].value_counts())
     
@@ -292,6 +310,7 @@ def preprocessing_atac(
         target_sum=None, 
         n_top_features = 100000, # or gene list
         chunk_size: int = CHUNK_SIZE,
+        min_cell_per_batch: int = 10,
         backed: bool = False,
         log=None
     ):
@@ -324,6 +343,13 @@ def preprocessing_atac(
     if n_top_features is None: n_top_features = 100000
     if target_sum is None: target_sum = 10000
     
+        # Filter out batches with only one sample
+    batch_counts = adata.obs['batch'].value_counts()
+    print('min_cell_per_batch', min_cell_per_batch)
+    valid_batches = batch_counts[batch_counts >= min_cell_per_batch].index
+    if len(valid_batches) < len(batch_counts):
+        adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
+
     if log: log.info('Preprocessing')
     if type(adata.X) != csr.csr_matrix:
         adata.X = scipy.sparse.csr_matrix(adata.X)
@@ -358,6 +384,68 @@ def preprocessing_atac(
     # if log: log.info('Normalizing total per cell')
     # if target_sum != -1:
         
+    if log: log.info('Batch specific maxabs scaling')
+    # adata = batch_scale(adata, chunk_size=chunk_size)
+    adata.X = MaxAbsScaler().fit_transform(adata.X)
+    if log: log.info('Processed dataset shape: {}'.format(adata.shape))
+    return adata
+
+
+def preprocessing_adt(
+        adata: AnnData, 
+        min_features: int = 10, 
+        min_cells: int = 3, 
+        target_sum: int = 10000, 
+        chunk_size: int = CHUNK_SIZE,
+        backed: bool = False,
+        log=None
+    ):
+    """
+    Preprocessing single-cell RNA-seq data
+    
+    Parameters
+    ----------
+    adata
+        An AnnData matrice of shape n_obs x n_vars. Rows correspond to cells and columns to genes.
+    min_features
+        Filtered out cells that are detected in less than n genes. Default: 600.
+    min_cells
+        Filtered out genes that are detected in less than n cells. Default: 3.
+    target_sum
+        After normalization, each cell has a total count equal to target_sum. If None, total count of each cell equal to the median of total counts for cells before normalization.
+    n_top_features
+        Number of highly-variable genes to keep. Default: 2000.
+    chunk_size
+        Number of samples from the same batch to transform. Default: 20000.
+    log
+        If log, record each operation in the log file. Default: None.
+        
+    Return
+    -------
+    The AnnData object after preprocessing.
+    """
+
+    # adata.layers['count'] = adata.X.copy()
+    batch_counts = adata.obs['batch'].value_counts()
+
+    # if log: log.info('There are {} batches under batch_name: {}'.format(len(adata.obs['batch'].cat.categories), batch_name))
+    if log: log.info(adata.obs['batch'].value_counts())
+    
+    if log: log.info('Preprocessing')
+    # if not issparse(adata.X):
+    if type(adata.X) != csr.csr_matrix and (not backed) and (not adata.isbacked):
+        adata.X = scipy.sparse.csr_matrix(adata.X)
+    
+    if log: log.info('Filtering cells')
+    sc.pp.filter_cells(adata, min_genes=min_features)
+    
+    if log: log.info('Filtering features')
+    sc.pp.filter_genes(adata, min_cells=min_cells)
+    
+    adata.raw = adata # keep the normalized and log1p transformed data as raw gene expression for differential expression analysis
+    
+    # adata.X = clr_normalize(adata.X)
+
     if log: log.info('Batch specific maxabs scaling')
     # adata = batch_scale(adata, chunk_size=chunk_size)
     adata.X = MaxAbsScaler().fit_transform(adata.X)
@@ -407,30 +495,47 @@ def preprocessing(
     """
     if profile == 'RNA':
         return preprocessing_rna(
-                   adata, 
-                   min_features=min_features, 
-                   min_cells=min_cells, 
-                   target_sum=target_sum,
-                   n_top_features=n_top_features, 
-                   min_cell_per_batch=min_cell_per_batch,
-                   keep_mt=keep_mt,
-                   backed=backed,
-                   chunk_size=chunk_size, 
-                   log=log
+                    adata, 
+                    min_features=min_features, 
+                    min_cells=min_cells, 
+                    target_sum=target_sum,
+                    n_top_features=n_top_features, 
+                    min_cell_per_batch=min_cell_per_batch,
+                    keep_mt=keep_mt,
+                    backed=backed,
+                    chunk_size=chunk_size, 
+                    log=log
                )
     elif profile == 'ATAC':
         return preprocessing_atac(
-                   adata, 
-                   min_features=min_features, 
-                   min_cells=min_cells, 
-                   target_sum=target_sum,
-                   n_top_features=n_top_features, 
-                   chunk_size=chunk_size, 
-                   backed=backed,
-                   log=log
+                    adata, 
+                    min_features=min_features, 
+                    min_cells=min_cells, 
+                    target_sum=target_sum,
+                    n_top_features=n_top_features, 
+                    min_cell_per_batch=min_cell_per_batch,
+                    chunk_size=chunk_size, 
+                    backed=backed,
+                    log=log
                )
+    elif profile == 'ADT':
+        return preprocessing_adt(
+                     adata, 
+                     min_features=min_features, 
+                     min_cells=min_cells, 
+                     backed=backed,
+                     log=log
+                )
     else:
         raise ValueError("Not support profile: `{}` yet".format(profile))
+    
+
+def clr_normalize(matrix):
+    """Centered log-ratio normalization across rows (cells)."""
+    matrix = matrix + 1  # Avoid log(0)
+    geometric_mean = np.exp(np.mean(np.log(matrix), axis=1)).reshape(-1, 1)
+    return np.log(matrix / geometric_mean)
+
 
 def batch_scale(adata, chunk_size=CHUNK_SIZE):
     """
