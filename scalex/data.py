@@ -183,10 +183,10 @@ def concat_data(
             adata = load_files(root)
         adata_list.append(adata)
         
-    if batch_categories is None:
-        batch_categories = list(map(str, range(len(adata_list))))
-    else:
-        assert len(adata_list) == len(batch_categories)
+    # if batch_categories is None:
+    #     batch_categories = list(map(str, range(len(adata_list))))
+    # else:
+    #     assert len(adata_list) == len(batch_categories)
 
     adata_concat = concat(adata_list, join=join, label=batch_key, keys=batch_categories, index_unique=index_unique)
     return adata_concat

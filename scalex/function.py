@@ -190,7 +190,7 @@ def SCALEX(
         if outdir:
             torch.save({'n_top_features':adata.var.index, 'enc':enc, 'dec':dec, 'n_domain':n_domain}, os.path.join(outdir, 'checkpoint/config.pt'))
     else:
-        state = torch.load(os.path.join(projection, 'checkpoint/config.pt'))
+        state = torch.load(os.path.join(projection, 'checkpoint/config.pt'), weights_only=False)
         n_top_features, enc, dec, n_domain = state['n_top_features'], state['enc'], state['dec'], state['n_domain']
         model = VAE(enc, dec, n_domain=n_domain)
         model.load_model(os.path.join(projection, 'checkpoint/model.pt'))

@@ -1,5 +1,10 @@
 # Changelog
 
+## [My 30, 2025]
+add cmd `scalex` in addition to `SCALEX`
+add cmd `fragment` to make peak matrix and gene activity score
+add annotate function in analysis.py with filtering pseudogenes
+
 ## [Dec 20, 2024]
 ### Added
 - Add plot track in plot.py

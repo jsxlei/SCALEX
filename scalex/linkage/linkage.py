@@ -12,14 +12,14 @@ from scalex.data import aggregate_data
 
 from scalex.atac.bedtools import intersect_bed, bed_to_df, df_to_bed
 from scalex.pp.annotation import format_rna, format_atac
-from scalex.analysis import get_markers
+from scalex.analysis import get_markers, flatten_dict
 # from scalex.linkage.utils import row_wise_correlation
 
 class Linkage:
     def __init__(self, rna, atac, groupby='cell_type', gtf=None, up=100_000, down=100_000):
         self.rna = rna
         self.atac = atac
-        self.gtf = gtf
+        self.gtf = gtf if gtf is not None else os.path.expanduser('~/.scalex/gencode.v38.annotation.gtf.gz')
         self.up = up
         self.down = down
 
@@ -30,8 +30,8 @@ class Linkage:
 
 
     def format_data(self):
-        self.rna = format_rna(self.rna)
-        format_atac(self.atac)
+        self.rna = format_rna(self.rna.copy(), gtf=self.gtf)
+        self.atac = format_atac(self.atac.copy())
         self.rna_var = self.rna.var
         self.atac_var = self.atac.var
 
@@ -39,7 +39,13 @@ class Linkage:
         self.rna_agg = aggregate_data(self.rna, groupby=groupby)
         self.atac_agg = aggregate_X(self.atac, groupby=groupby, normalize="RPKM")
 
+        common = set(self.rna_agg.obs[groupby].values) & set(self.atac_agg.obs[groupby].values)
+        self.rna_agg = self.rna_agg[self.rna_agg.obs[groupby].isin(common)]
+        self.atac_agg = self.atac_agg[self.atac_agg.obs[groupby].isin(common)]
+        print(common)
+
     def get_edges(self, up=100_000, down=100_000):
+        # assert self.rna_agg.obs[self.groupby] == self.atac_agg.obs[self.groupby], "groupby should have the same order"
         ## peak to gene linkage
         self.edges = intersect_bed(self.rna_var, self.atac_var, up=up, down=down, add_distance=True)
         self.gene_to_index = {gene: i for i, gene in enumerate(self.rna_var.index)}
@@ -61,7 +67,16 @@ class Linkage:
 
         return genes, peaks
 
+    def find_overlapping_peak_gene_linkage(self, genes_deg, peaks_deg, threshold=0.7):
+        genes, peaks = self.filter_peak_gene_linkage(threshold=threshold)
+        if isinstance(genes_deg, dict):
+            genes_deg = flatten_dict(genes_deg)
+        if isinstance(peaks_deg, dict):
+            peaks_deg = flatten_dict(peaks_deg)
 
+        gene_peak_pair = [(genes[i], peaks[i]) for i, _ in enumerate(genes) if genes[i] in genes_deg and peaks[i] in peaks_deg]
+
+        return gene_peak_pair
 
 def row_wise_correlation(arr1, arr2, epsilon=1e-8):
     """

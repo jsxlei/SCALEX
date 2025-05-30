@@ -79,7 +79,9 @@ def format_atac(atac):
     if set(["Chromosome", "Start", "End"]).issubset(atac.var.columns):
         print("Already formatted")
         return atac
-    atac.var = bed_to_df(atac.var_names)
+    else:
+        atac.var = bed_to_df(atac.var_names)
+        return atac
     
 
 def strand_specific_start_site(df):
@@ -108,9 +110,9 @@ def get_gtf(gtf_file, genome='hg38', drop_by='gene_name'):
     #     gtf_file = GENOME_PATH / 'gencode.v38.annotation.gtf.gz'
     # elif genome == 'hg19':
     #     gtf_file = GENOME_PATH / 'gencode.v19.annotation.gtf.gz'
-    # if not os.path.exists(gtf_file):
-    #     version = genome.split('hg')[-1]
-    #     os.system(f'wget -O {gtf_file} https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_{version}/gencode.v{version}.annotation.gtf.gz')
+    if not os.path.exists(gtf_file):
+        version = genome.split('hg')[-1]
+        os.system(f'wget -O {gtf_file} https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_{version}/gencode.v{version}.annotation.gtf.gz')
         
     gtf = pr.read_gtf(gtf_file)
     gtf = gtf.df.drop_duplicates(subset=[drop_by], keep="first")

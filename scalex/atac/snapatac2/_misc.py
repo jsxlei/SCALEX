@@ -95,6 +95,7 @@ def aggregate_X(
         else:
             out_adata = AnnData(filename=file, X=np.array(values))
         out_adata.obs_names = list(keys)
+        out_adata.obs[groupby] = keys
         out_adata.var_names = adata.var_names
         return out_adata
 

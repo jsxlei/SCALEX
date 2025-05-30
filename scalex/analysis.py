@@ -17,7 +17,7 @@ macrophage_markers = {
     'pDC': ['CLEC4C', 'TCL1A'], #['IRF7', 'IRF8', 'PLD4', 'MPEG1'],
     'epithelial': ['KRT8'],
     'cancer cells': ['EPCAM'],
-    'neutrophils': ['FCGR3B', 'CSF3R', 'CXCR2', 'SOD2',  'GOS2'],
+    'neutrophils': ['FCGR3B', 'CSF3R', 'CXCR2', 'IFITM2', 'BASP1', 'GOS2'],
     'DC': ['CLEC9A', 'XCR1', 'CD1C', 'CD1A', 'LILRA4'],
     'cDC1': ['CLEC9A', 'IRF8', 'SNX3', 'XCR1'],
     'cDC2': ['FCER1A', 'CD1C', 'CD1E', 'CLEC10A'],
@@ -69,10 +69,18 @@ def enrich_analysis(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
     return results_filtered
 
 
+def check_is_numeric(df, col):
+    col_values = df[col].astype(str)
+    is_numeric = pd.to_numeric(col_values, errors='coerce').notna().all()
+    return is_numeric
+
 def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Process_2023', cutoff=0.05, add='', out_dir=None, **kwargs):
     go_results = enrich_analysis(gene_names, organism=organism, gene_sets=gene_sets, cutoff=cutoff, **kwargs)
     if add:
         go_results['cell_type'] = add + go_results['cell_type'].astype(str)
+    if check_is_numeric(go_results, 'cell_type'):
+        go_results['cell_type'] = 'cluster_'+go_results['cell_type'].astype(str)
+
     n = go_results['cell_type'].nunique()
     ax = dotplot(go_results,
             column="Adjusted P-value",
@@ -102,10 +110,11 @@ def get_markers(
         adata, 
         groupby='cell_type',
         pval_cutoff=0.01, 
-        logfc_cutoff=1.0,  # ~1.5 in linear scale
+        logfc_cutoff=1.5,  # ~1.5 in linear scale
         min_cells=10,
         top_n=300,
         processed=False,
+        filter_pseudo=True,
     ):
     """
     Get markers filtered by both p-value and log fold change
@@ -114,6 +123,11 @@ def get_markers(
         logfc_cutoff: 0.58 ≈ 1.5 fold change (log2(1.5))
                      1.0 ≈ 2 fold change (log2(2))
     """
+    from scalex.pp.annotation import format_rna
+
+    adata = adata.copy()
+    if filter_pseudo:
+        adata = format_rna(adata)
     markers_dict = {}
     clusters = adata.obs[groupby].cat.categories
 
@@ -143,7 +157,7 @@ def flatten_dict(markers):
     return flatten_markers
 
 
-def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None):
+def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=300):
     """
     Find gene program for each cell type
     """
@@ -151,33 +165,31 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=No
     from scalex.data import aggregate_data
     adata_avg = aggregate_data(adata, groupby=groupby, processed=processed)
 
-    markers = get_markers(adata, groupby=groupby, processed=processed)
+    markers = get_markers(adata, groupby=groupby, processed=processed, top_n=top_n)
     for cluster, genes in markers.items():
         print(cluster, len(genes))
 
     marker_list = flatten_dict(markers)
 
-    adata_avg = adata_avg[:, marker_list].copy()
     sc.pp.scale(adata_avg, zero_center=True)
+    adata_avg_ = adata_avg[:, marker_list].copy()
 
     if n_clusters is None:
         n_clusters = adata_avg.shape[0]
 
     from sklearn.cluster import KMeans
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-    adata_avg.var['cluster'] = np.array(kmeans.fit_predict(adata_avg.X.T)).astype(str)
-    print(adata_avg.var)
+    adata_avg_.var['cluster'] = np.array(kmeans.fit_predict(adata_avg_.X.T)).astype(str)
+    print(adata_avg_.var)
 
-    gene_cluster_dict = adata_avg.var.groupby('cluster').groups
+    gene_cluster_dict = adata_avg_.var.groupby('cluster').groups
     gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
 
     
-    cluster_order = np.argsort(adata_avg.var['cluster'].values)
-    adata_avg = adata_avg[:, cluster_order]
+    cluster_order = np.argsort(adata_avg_.var['cluster'].values)
+    adata_avg_ = adata_avg_[:, cluster_order]
 
     return gene_cluster_dict, adata_avg
-
-
 
 
 def annotate(
