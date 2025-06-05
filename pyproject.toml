@@ -36,6 +36,7 @@ dependencies = [
 [project.scripts]
 SCALEX = "scalex.function:main"
 scalex = "scalex.function:main"
+frag = "scalex.atac.fragments:main"
 
 [project.optional-dependencies]
 dev = [

@@ -59,6 +59,7 @@ def aggregate_X(
     from natsort import natsorted
     from anndata import AnnData
 
+    adata = adata.copy()
     def norm(x):
         if normalize is None:
             return x

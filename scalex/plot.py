@@ -224,6 +224,7 @@ def plot_meta2(
         use_rep='latent', 
         color='cell_type', 
         batch='batch', 
+        groupby='cell_type',
         color_map=None, 
         figsize=(10, 10), 
         cmap='Blues',

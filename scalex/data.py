@@ -183,12 +183,13 @@ def concat_data(
             adata = load_files(root)
         adata_list.append(adata)
         
-    # if batch_categories is None:
     #     batch_categories = list(map(str, range(len(adata_list))))
     # else:
     #     assert len(adata_list) == len(batch_categories)
 
     adata_concat = concat(adata_list, join=join, label=batch_key, keys=batch_categories, index_unique=index_unique)
+    if batch_categories is None:
+        adata_concat.obs['batch'] = 'batch'
     return adata_concat
     # [print(b, adata.shape) for adata,b in zip(adata_list, batch_categories)]
     # concat = AnnData.concatenate(*adata_list, join=join, batch_key=batch_key,
@@ -197,7 +198,7 @@ def concat_data(
         # concat.write(save, compression='gzip')
     # return concat
 
-def aggregate_data(rna, groupby='cell_type', processed=False):
+def aggregate_data(rna, groupby='cell_type', processed=False, scale=False):
     if processed:
         if rna.raw is not None:
             rna = rna.raw.to_adata()
@@ -210,6 +211,8 @@ def aggregate_data(rna, groupby='cell_type', processed=False):
         sc.pp.normalize_total(rna_agg, target_sum=1e4)
         sc.pp.log1p(rna_agg)
 
+    if scale:
+        sc.pp.scale(rna_agg, zero_center=True)
     return rna_agg
     
 def preprocessing_rna(

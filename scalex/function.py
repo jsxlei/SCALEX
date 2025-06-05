@@ -40,6 +40,7 @@ def SCALEX(
         outdir:str=None, 
         projection:str=None,
         repeat:bool=False,
+        name:str=None,
         impute:str=None, 
         chunk_size:int=20000,
         ignore_umap:bool=False,
@@ -136,6 +137,9 @@ def SCALEX(
         device='cpu'
     
     if outdir:
+        if name is not None and projection is not None:
+            outdir = os.path.join(projection, 'projection', name)
+            os.makedirs(outdir, exist_ok=True)
         # outdir = outdir+'/'
         os.makedirs(os.path.join(outdir, 'checkpoint'), exist_ok=True)
         log = create_logger('SCALEX', fh=os.path.join(outdir, 'log.txt'), overwrite=True)
@@ -362,6 +366,7 @@ def main():
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--keep_mt', action='store_true')
+    parser.add_argument('--name', type=str, default=None)
     # parser.add_argument('--version', type=int, default=2)
     # parser.add_argument('--k', type=str, default=30)
     # parser.add_argument('--embed', type=str, default='UMAP')
@@ -403,6 +408,7 @@ def main():
         chunk_size=args.chunk_size,
         ignore_umap=args.ignore_umap,
         repeat=args.repeat,
+        name=args.name,
         verbose=True,
         assess=args.assess,
         eval=args.eval,

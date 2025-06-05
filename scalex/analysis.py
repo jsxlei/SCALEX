@@ -57,6 +57,8 @@ def enrich_analysis(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
          
     results = pd.DataFrame()
     for group, genes in gene_names.items():
+        # print(group, genes)
+        genes = list(genes)
         enr = gp.enrichr(genes, gene_sets=gene_sets, cutoff=cutoff).results
         enr['cell_type'] = group  # Add the group label to the results
         results = pd.concat([results, enr])
@@ -157,21 +159,34 @@ def flatten_dict(markers):
     return flatten_markers
 
 
-def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=300):
+def filter_marker_dict(markers, vars):
+    marker_dict = {}
+    for cluster, genes in markers.items():
+        marker_dict[cluster] = [i for i in genes if i in vars]
+    return marker_dict
+
+def rename_marker_dict(markers, rename_dict):
+    marker_dict = {}
+    for cluster, genes in markers.items():
+        marker_dict[rename_dict[cluster]] = genes
+    return marker_dict
+
+
+def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=300, filter_pseudo=True, **kwargs):
     """
     Find gene program for each cell type
     """
     adata = adata.copy()
     from scalex.data import aggregate_data
-    adata_avg = aggregate_data(adata, groupby=groupby, processed=processed)
+    adata_avg = aggregate_data(adata, groupby=groupby, processed=processed, scale=True)
 
-    markers = get_markers(adata, groupby=groupby, processed=processed, top_n=top_n)
+    markers = get_markers(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo, **kwargs)
     for cluster, genes in markers.items():
         print(cluster, len(genes))
 
     marker_list = flatten_dict(markers)
 
-    sc.pp.scale(adata_avg, zero_center=True)
+    # sc.pp.scale(adata_avg, zero_center=True)
     adata_avg_ = adata_avg[:, marker_list].copy()
 
     if n_clusters is None:
@@ -180,7 +195,7 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=No
     from sklearn.cluster import KMeans
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
     adata_avg_.var['cluster'] = np.array(kmeans.fit_predict(adata_avg_.X.T)).astype(str)
-    print(adata_avg_.var)
+    # print(adata_avg_.var)
 
     gene_cluster_dict = adata_avg_.var.groupby('cluster').groups
     gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
@@ -192,20 +207,40 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=No
     return gene_cluster_dict, adata_avg
 
 
+def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=-1, pvalue_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, **kwargs):
+    """
+    Find peak program for each cell type
+    """
+    return find_gene_program(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo, pval_cutoff=pvalue_cutoff, logfc_cutoff=logfc_cutoff, **kwargs)
+
+
+def find_consensus_program(adata, groupby='cell_type', across=None, set_type='gene', top_n=-1, **kwargs):
+    """
+    Find consensus program for each cell type
+    """
+    if across is not None:
+        adata[groupby+'_'+across] = adata.obs[groupby].astype(str) + '_' + adata.obs[across].astype(str)
+        groupby = groupby+'_'+across
+
+    if set_type == 'gene':
+        return find_gene_program(adata, groupby=groupby, top_n=top_n, **kwargs)
+    elif set_type == 'peak':
+        return find_peak_program(adata, groupby=groupby, top_n=top_n, **kwargs)
+        
+
 def annotate(
     adata, 
     cell_type='leiden',
     color = ['cell_type', 'leiden', 'tissue', 'donor'],
     cell_type_markers='macrophage', #None, 
-    marker_dict = None,
     show_markers=False,
     gene_sets='GO_Biological_Process_2023',
-    n_tops = [], #[100],
-    options = ['pos'], # ['pos', 'neg']
     additional={},
     go=True,
-    out_dir = None, #'../../results/go_and_pathway/NSCLC_macrophage/'
-    cutoff = 0.05
+    out_dir = None, 
+    cutoff = 0.05,
+    processed=False,
+    top_n=300,
 ):
     
     color = [i for i in color if i in adata.obs.columns]
@@ -221,28 +256,31 @@ def annotate(
         sc.pl.dotplot(adata, cell_type_markers_, groupby=cell_type, standard_scale='var', cmap='coolwarm')
         sc.pl.heatmap(adata, cell_type_markers_, groupby=cell_type,  show_gene_labels=True, vmax=6)
 
-    if marker_dict is None:
-        sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
-        sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, cmap='coolwarm', key=cell_type, standard_scale='var', figsize=(22, 5), dendrogram=False)
-        marker = pd.DataFrame(adata.uns[cell_type]['names'])
-        # marker_dict = marker.head(5).to_dict(orient='list')
-        plt.show()
-    else:
-        pass
+    marker_genes = get_markers(adata, groupby=cell_type, processed=processed, top_n=top_n)
+    # print(marker_genes)
+    enrich_and_plot(marker_genes, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
+    # if marker_dict is None:
+    #     sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
+    #     sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, cmap='coolwarm', key=cell_type, standard_scale='var', figsize=(22, 5), dendrogram=False)
+    #     marker = pd.DataFrame(adata.uns[cell_type]['names'])
+    #     # marker_dict = marker.head(5).to_dict(orient='list')
+    #     plt.show()
+    # else:
+    #     pass
         # sc.pl.heatmap(adata, marker_dict, groupby=cell_type, show_gene_labels=True, vmax=6)
 
-    if show_markers:
-        for k, v in marker_dict.items():
-            print(k)
-            sc.pl.umap(adata, color=v, ncols=5)
+    # if show_markers:
+    #     for k, v in marker_dict.items():
+    #         print(k)
+    #         sc.pl.umap(adata, color=v, ncols=5)
         
-    if marker_dict is not None:
-        enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
-    elif len(n_tops) > 0:
-        for n_top in n_tops:
-            print('-'*20+'\n', n_top, '\n'+'-'*20)
-            marker_dict = marker.head(n_top).to_dict(orient='list')
-            enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
+    # if marker_dict is not None:
+    #     enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
+    # elif len(n_tops) > 0:
+    #     for n_top in n_tops:
+    #         print('-'*20+'\n', n_top, '\n'+'-'*20)
+    #         marker_dict = marker.head(n_top).to_dict(orient='list')
+    #         enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
         # if go:
             # for option in options:
                 # if option == 'pos':
@@ -271,26 +309,26 @@ def annotate(
                 #     go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/{option}_go_results_{n_top}.csv')
                 # plt.show()
         
-        for pathway_name, pathways in additional.items():
-            try:
-                pathway_results = enrich_analysis(marker_dict, gene_sets=pathways)
-            except:
-                continue
-            ax = dotplot(pathway_results,
-                     column="Adjusted P-value",
-                      x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
-                      # size=10,
-                      top_term=10,
-                      figsize=(8,10),
-                      title = pathway_name,
-                      xticklabels_rot=45, # rotate xtick labels
-                      show_ring=False, # set to False to revmove outer ring
-                      marker='o',
-                     cutoff=0.05,
-                     cmap='viridis'
-                     )
+        # for pathway_name, pathways in additional.items():
+        #     try:
+        #         pathway_results = enrich_analysis(marker_dict, gene_sets=pathways)
+        #     except:
+        #         continue
+        #     ax = dotplot(pathway_results,
+        #              column="Adjusted P-value",
+        #               x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
+        #               # size=10,
+        #               top_term=10,
+        #               figsize=(8,10),
+        #               title = pathway_name,
+        #               xticklabels_rot=45, # rotate xtick labels
+        #               show_ring=False, # set to False to revmove outer ring
+        #               marker='o',
+        #              cutoff=0.05,
+        #              cmap='viridis'
+        #              )
         
-            plt.show()
+        #     plt.show()
 
 
 
