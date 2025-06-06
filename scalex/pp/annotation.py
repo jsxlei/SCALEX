@@ -67,7 +67,7 @@ def format_rna(
     force=False
 ):
     if set(GENE_COLUMNS).issubset(rna.var.columns) and not force:
-        print("Already formatted")
+        # print("Already formatted")
         return rna
     
     rna.var = annotate_genes(rna.var, gtf)

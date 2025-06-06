@@ -5,6 +5,10 @@ import numpy as np
 from gseapy import barplot, dotplot
 import gseapy as gp
 import matplotlib.pyplot as plt
+from collections import Counter
+from multiprocessing import Pool, cpu_count
+
+from scalex.data import aggregate_data
 
 macrophage_markers = {
     'B': ['CD79A',  'IGHM'], # 'CD37',
@@ -131,6 +135,7 @@ def get_markers(
     if filter_pseudo:
         adata = format_rna(adata)
     markers_dict = {}
+    adata.obs[groupby] = adata.obs[groupby].astype('category')
     clusters = adata.obs[groupby].cat.categories
 
     if 'rank_genes_groups' not in adata.uns:
@@ -172,12 +177,27 @@ def rename_marker_dict(markers, rename_dict):
     return marker_dict
 
 
+def cluster_program(adata_avg, n_clusters=None):
+    if n_clusters is None:
+        n_clusters = adata_avg.shape[0]
+
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0)
+    adata_avg.var['cluster'] = np.array(kmeans.fit_predict(adata_avg.X.T)).astype(str)
+    # print(adata_avg_.var)
+
+    gene_cluster_dict = adata_avg.var.groupby('cluster').groups
+    gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
+
+    return gene_cluster_dict
+
+
 def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=300, filter_pseudo=True, **kwargs):
     """
     Find gene program for each cell type
     """
     adata = adata.copy()
-    from scalex.data import aggregate_data
+    
     adata_avg = aggregate_data(adata, groupby=groupby, processed=processed, scale=True)
 
     markers = get_markers(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo, **kwargs)
@@ -189,20 +209,22 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=No
     # sc.pp.scale(adata_avg, zero_center=True)
     adata_avg_ = adata_avg[:, marker_list].copy()
 
-    if n_clusters is None:
-        n_clusters = adata_avg.shape[0]
+    gene_cluster_dict = cluster_program(adata_avg_, n_clusters=n_clusters)
 
-    from sklearn.cluster import KMeans
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-    adata_avg_.var['cluster'] = np.array(kmeans.fit_predict(adata_avg_.X.T)).astype(str)
-    # print(adata_avg_.var)
+    # if n_clusters is None:
+    #     n_clusters = adata_avg.shape[0]
 
-    gene_cluster_dict = adata_avg_.var.groupby('cluster').groups
-    gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
+    # from sklearn.cluster import KMeans
+    # kmeans = KMeans(n_clusters=n_clusters, random_state=0)
+    # adata_avg_.var['cluster'] = np.array(kmeans.fit_predict(adata_avg_.X.T)).astype(str)
+    # # print(adata_avg_.var)
+
+    # gene_cluster_dict = adata_avg_.var.groupby('cluster').groups
+    # gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
 
     
-    cluster_order = np.argsort(adata_avg_.var['cluster'].values)
-    adata_avg_ = adata_avg_[:, cluster_order]
+    # cluster_order = np.argsort(adata_avg_.var['cluster'].values)
+    # adata_avg_ = adata_avg_[:, cluster_order]
 
     return gene_cluster_dict, adata_avg
 
@@ -214,19 +236,88 @@ def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=No
     return find_gene_program(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo, pval_cutoff=pvalue_cutoff, logfc_cutoff=logfc_cutoff, **kwargs)
 
 
-def find_consensus_program(adata, groupby='cell_type', across=None, set_type='gene', top_n=-1, **kwargs):
+def _process_group(args):
+    """Helper function for multiprocessing"""
+    adata_, groupby, set_type, top_n, filter_pseudo, kwargs = args
+    if set_type == 'gene':
+        filter_pseudo = True
+    elif set_type == 'peak':
+        filter_pseudo = False
+        
+    # Filter groups with less than min_samples
+    group_counts = adata_.obs[groupby].value_counts()
+    valid_groups = group_counts[group_counts >= 2].index
+    if len(valid_groups) < 2:
+        print(f"Skipping as it has less than 2 groups with 2 or more samples")
+        return None
+        
+    adata_ = adata_[adata_.obs[groupby].isin(valid_groups)].copy()
+    markers = get_markers(adata_, groupby=groupby, top_n=top_n, filter_pseudo=filter_pseudo, **kwargs)
+    return flatten_dict(markers)
+
+def find_consensus_program(adata, groupby='cell_type', across=None, set_type='gene', processed=False, top_n=-1, occurance=None, min_samples=2, n_jobs=None, **kwargs):
     """
     Find consensus program for each cell type
+    
+    Parameters
+    ----------
+    adata : AnnData
+        Annotated data matrix
+    groupby : str, optional (default: 'cell_type')
+        Column name in adata.obs to group by
+    across : str, optional (default: None)
+        Column name in adata.obs to split data across
+    set_type : str, optional (default: 'gene')
+        Type of features to analyze ('gene' or 'peak')
+    processed : bool, optional (default: False)
+        Whether the data is already processed
+    top_n : int, optional (default: -1)
+        Number of top markers to select per group
+    occurance : int, optional (default: None)
+        Minimum number of occurrences across groups
+    min_samples : int, optional (default: 2)
+        Minimum number of samples required per group
+    n_jobs : int, optional (default: None)
+        Number of jobs to run in parallel. If None, uses all available cores.
     """
-    if across is not None:
-        adata[groupby+'_'+across] = adata.obs[groupby].astype(str) + '_' + adata.obs[across].astype(str)
-        groupby = groupby+'_'+across
+    adata.obs[groupby] = adata.obs[groupby].astype('category')
+    n_clusters = len(adata.obs[groupby].cat.categories)
+    occurance = occurance or max(2, len(adata.obs[across].cat.categories) // 2)
+    filter_pseudo = True if set_type == 'gene' else False
 
-    if set_type == 'gene':
-        return find_gene_program(adata, groupby=groupby, top_n=top_n, **kwargs)
-    elif set_type == 'peak':
-        return find_peak_program(adata, groupby=groupby, top_n=top_n, **kwargs)
-        
+    if across is not None:
+        if n_jobs is None:
+            n_jobs = max(1, cpu_count() - 1)
+            
+        # Prepare arguments for parallel processing
+        args_list = []
+        for c in np.unique(adata.obs[across]):
+            adata_ = adata[adata.obs[across] == c].copy()
+            args_list.append((adata_, groupby, set_type, top_n, filter_pseudo, kwargs))
+            
+        # Process groups in parallel
+        with Pool(n_jobs) as pool:
+            results = pool.map(_process_group, args_list)
+            
+        # Filter out None results and combine markers
+        markers_list = [r for r in results if r is not None]
+        if not markers_list:
+            raise ValueError("No valid groups found with sufficient samples")
+            
+        markers_list = np.concatenate(markers_list)
+        gene_counts = Counter(markers_list)
+        markers_list = np.array([gene for gene, count in gene_counts.items() if count >= occurance])
+        print('There are {} genes with at least {} occurrences'.format(len(markers_list), occurance))
+
+    adata.obs[groupby+'_'+across] = adata.obs[groupby].astype(str) + '_' + adata.obs[across].astype(str)
+    groupby = groupby+'_'+across
+    adata_avg = aggregate_data(adata, groupby=groupby, processed=processed, scale=True)
+    adata_avg_ = adata_avg[:, markers_list].copy()
+
+    gene_cluster_dict = cluster_program(adata_avg_, n_clusters=n_clusters)
+
+    return gene_cluster_dict, adata_avg
+
 
 def annotate(
     adata, 
