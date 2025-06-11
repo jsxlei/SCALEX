@@ -121,6 +121,7 @@ def get_markers(
         top_n=300,
         processed=False,
         filter_pseudo=True,
+        min_cell_per_batch=100,
     ):
     """
     Get markers filtered by both p-value and log fold change
@@ -128,12 +129,15 @@ def get_markers(
     Parameters:
         logfc_cutoff: 0.58 ≈ 1.5 fold change (log2(1.5))
                      1.0 ≈ 2 fold change (log2(2))
+        min_cell_per_batch: int, optional (default: 100)
+            Minimum number of cells required per batch
     """
     from scalex.pp.annotation import format_rna
 
     adata = adata.copy()
     if filter_pseudo:
         adata = format_rna(adata)
+    
     markers_dict = {}
     adata.obs[groupby] = adata.obs[groupby].astype('category')
     clusters = adata.obs[groupby].cat.categories
@@ -164,22 +168,48 @@ def flatten_dict(markers):
     return flatten_markers
 
 
-def filter_marker_dict(markers, vars):
+def filter_marker_dict(markers, var_names):
     marker_dict = {}
     for cluster, genes in markers.items():
-        marker_dict[cluster] = [i for i in genes if i in vars]
+        marker_dict[cluster] = [i for i in genes if i in var_names]
     return marker_dict
 
 def rename_marker_dict(markers, rename_dict):
+    """
+    Rename dictionary keys and merge values if multiple keys map to the same new key.
+    
+    Parameters:
+    -----------
+    markers : dict
+        Dictionary mapping original keys to lists of values
+    rename_dict : dict
+        Dictionary mapping original keys to new keys
+        
+    Returns:
+    --------
+    dict
+        Dictionary with renamed keys and merged values
+    """
     marker_dict = {}
     for cluster, genes in markers.items():
-        marker_dict[rename_dict[cluster]] = genes
+        new_key = rename_dict[cluster]
+        if new_key in marker_dict:
+            # If key exists, extend the list with new values
+            marker_dict[new_key].extend(genes)
+        else:
+            # If key doesn't exist, create new list
+            marker_dict[new_key] = genes.copy()
+    
+    # Remove duplicates while preserving order
+    for key in marker_dict:
+        marker_dict[key] = list(dict.fromkeys(marker_dict[key]))
+        
     return marker_dict
 
 
 def cluster_program(adata_avg, n_clusters=None):
     if n_clusters is None:
-        n_clusters = adata_avg.shape[0]
+        n_clusters = adata_avg.shape[0] #+ 2
 
     from sklearn.cluster import KMeans
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
@@ -211,29 +241,14 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=No
 
     gene_cluster_dict = cluster_program(adata_avg_, n_clusters=n_clusters)
 
-    # if n_clusters is None:
-    #     n_clusters = adata_avg.shape[0]
-
-    # from sklearn.cluster import KMeans
-    # kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-    # adata_avg_.var['cluster'] = np.array(kmeans.fit_predict(adata_avg_.X.T)).astype(str)
-    # # print(adata_avg_.var)
-
-    # gene_cluster_dict = adata_avg_.var.groupby('cluster').groups
-    # gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
-
-    
-    # cluster_order = np.argsort(adata_avg_.var['cluster'].values)
-    # adata_avg_ = adata_avg_[:, cluster_order]
-
     return gene_cluster_dict, adata_avg
 
 
-def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=-1, pvalue_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, **kwargs):
+def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=-1, pval_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, **kwargs):
     """
     Find peak program for each cell type
     """
-    return find_gene_program(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo, pval_cutoff=pvalue_cutoff, logfc_cutoff=logfc_cutoff, **kwargs)
+    return find_gene_program(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo, pval_cutoff=pval_cutoff, logfc_cutoff=logfc_cutoff, **kwargs)
 
 
 def _process_group(args):
@@ -243,6 +258,10 @@ def _process_group(args):
         filter_pseudo = True
     elif set_type == 'peak':
         filter_pseudo = False
+        if not 'pval_cutoff' in kwargs:
+            kwargs['pval_cutoff'] = 0.05
+        if not 'logfc_cutoff' in kwargs:
+            kwargs['logfc_cutoff'] = 1.
         
     # Filter groups with less than min_samples
     group_counts = adata_.obs[groupby].value_counts()
@@ -253,7 +272,9 @@ def _process_group(args):
         
     adata_ = adata_[adata_.obs[groupby].isin(valid_groups)].copy()
     markers = get_markers(adata_, groupby=groupby, top_n=top_n, filter_pseudo=filter_pseudo, **kwargs)
+    # print(len(flatten_dict(markers)))
     return flatten_dict(markers)
+
 
 def find_consensus_program(adata, groupby='cell_type', across=None, set_type='gene', processed=False, top_n=-1, occurance=None, min_samples=2, n_jobs=None, **kwargs):
     """
@@ -282,12 +303,12 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
     """
     adata.obs[groupby] = adata.obs[groupby].astype('category')
     n_clusters = len(adata.obs[groupby].cat.categories)
-    occurance = occurance or max(2, len(adata.obs[across].cat.categories) // 2)
+    occurance = occurance or max(2, len(np.unique(adata.obs[across])) // 2)
     filter_pseudo = True if set_type == 'gene' else False
 
     if across is not None:
         if n_jobs is None:
-            n_jobs = max(1, cpu_count() - 1)
+            n_jobs = min(cpu_count(), 32)
             
         # Prepare arguments for parallel processing
         args_list = []
@@ -295,9 +316,12 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
             adata_ = adata[adata.obs[across] == c].copy()
             args_list.append((adata_, groupby, set_type, top_n, filter_pseudo, kwargs))
             
-        # Process groups in parallel
-        with Pool(n_jobs) as pool:
-            results = pool.map(_process_group, args_list)
+        # Process groups in parallel or sequentially based on n_jobs
+        if n_jobs == 1:
+            results = [_process_group(args) for args in args_list]
+        else:
+            with Pool(n_jobs) as pool:
+                results = pool.map(_process_group, args_list)
             
         # Filter out None results and combine markers
         markers_list = [r for r in results if r is not None]
@@ -333,7 +357,6 @@ def annotate(
     processed=False,
     top_n=300,
 ):
-    
     color = [i for i in color if i in adata.obs.columns]
     color = color + [cell_type] if cell_type not in color else color
     sc.pl.umap(adata, color=color, legend_loc='on data', legend_fontsize=10)
@@ -349,79 +372,7 @@ def annotate(
 
     marker_genes = get_markers(adata, groupby=cell_type, processed=processed, top_n=top_n)
     # print(marker_genes)
-    enrich_and_plot(marker_genes, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
-    # if marker_dict is None:
-    #     sc.tl.rank_genes_groups(adata, groupby=cell_type, key_added=cell_type, dendrogram=False)
-    #     sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, cmap='coolwarm', key=cell_type, standard_scale='var', figsize=(22, 5), dendrogram=False)
-    #     marker = pd.DataFrame(adata.uns[cell_type]['names'])
-    #     # marker_dict = marker.head(5).to_dict(orient='list')
-    #     plt.show()
-    # else:
-    #     pass
-        # sc.pl.heatmap(adata, marker_dict, groupby=cell_type, show_gene_labels=True, vmax=6)
-
-    # if show_markers:
-    #     for k, v in marker_dict.items():
-    #         print(k)
-    #         sc.pl.umap(adata, color=v, ncols=5)
-        
-    # if marker_dict is not None:
-    #     enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
-    # elif len(n_tops) > 0:
-    #     for n_top in n_tops:
-    #         print('-'*20+'\n', n_top, '\n'+'-'*20)
-    #         marker_dict = marker.head(n_top).to_dict(orient='list')
-    #         enrich_and_plot(marker_dict, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
-        # if go:
-            # for option in options:
-                # if option == 'pos':
-                    # go_results = enrich_analysis(marker_dict, gene_sets=gene_sets, cutoff=cutoff)
-                # else:
-                #     go_results = enrich_analysis(marker.tail(n_top), gene_sets=gene_sets)
-            
-                # go_results['cell_type'] = go_results['cell_type'].astype(str)
-                # n = go_results['cell_type'].nunique()
-                # ax = dotplot(go_results,
-                #         column="Adjusted P-value",
-                #         x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
-                #         # size=10,
-                #         top_term=10,
-                #         figsize=(0.7*n, 2*n),
-                #         title = f"{option}_GO_BP_{n_top}",  
-                #         xticklabels_rot=45, # rotate xtick labels
-                #         show_ring=False, # set to False to revmove outer ring
-                #         marker='o',
-                #         cutoff=cutoff, #0.05,
-                #         cmap='viridis'
-                #         )
-                # if out_dir is not None:
-                #     os.makedirs(out_dir, exist_ok=True)
-                #     go_results = go_results.sort_values('Adjusted P-value', ascending=False).groupby('cell_type').head(10)
-                #     go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(out_dir + f'/{option}_go_results_{n_top}.csv')
-                # plt.show()
-        
-        # for pathway_name, pathways in additional.items():
-        #     try:
-        #         pathway_results = enrich_analysis(marker_dict, gene_sets=pathways)
-        #     except:
-        #         continue
-        #     ax = dotplot(pathway_results,
-        #              column="Adjusted P-value",
-        #               x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
-        #               # size=10,
-        #               top_term=10,
-        #               figsize=(8,10),
-        #               title = pathway_name,
-        #               xticklabels_rot=45, # rotate xtick labels
-        #               show_ring=False, # set to False to revmove outer ring
-        #               marker='o',
-        #              cutoff=0.05,
-        #              cmap='viridis'
-        #              )
-        
-        #     plt.show()
-
-
+    return enrich_and_plot(marker_genes, gene_sets=gene_sets, cutoff=cutoff, out_dir=out_dir)
 
 
 def find_go_term_gene(df, term):

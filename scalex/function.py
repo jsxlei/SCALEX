@@ -21,7 +21,7 @@ def SCALEX(
         min_cells:int=3, 
         target_sum:int=None,
         n_top_features:int=None,
-        min_cell_per_batch:int=10,
+        min_cell_per_batch:int=200,
         join:str='inner', 
         batch_key:str='batch',  
         processed:bool=False,
@@ -343,7 +343,7 @@ def main():
     parser.add_argument('--min_cells', type=int, default=3)
     parser.add_argument('--n_top_features', default=None)
     parser.add_argument('--target_sum', type=int, default=None)
-    parser.add_argument('--min_cell_per_batch', type=int, default=10)
+    parser.add_argument('--min_cell_per_batch', type=int, default=200)
     parser.add_argument('--processed', action='store_true', default=False)
     parser.add_argument('--fraction', type=float, default=None)
     parser.add_argument('--n_obs', type=int, default=None)

@@ -256,15 +256,15 @@ def preprocessing_rna(
     if target_sum is None: target_sum = 10000
 
     # adata.layers['count'] = adata.X.copy()
-    batch_counts = adata.obs['batch'].value_counts()
+    # batch_counts = adata.obs['batch'].value_counts()
 
     # Filter out batches with only one sample
-    print('min_cell_per_batch', min_cell_per_batch)
-    valid_batches = batch_counts[batch_counts >= min_cell_per_batch].index
-    if len(valid_batches) < len(batch_counts):
-        adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
+    # print('min_cell_per_batch', min_cell_per_batch)
+    # valid_batches = batch_counts[batch_counts >= min_cell_per_batch].index
+    # if len(valid_batches) < len(batch_counts):
+        # adata = adata[adata.obs['batch'].isin(valid_batches)].copy()
     # if log: log.info('There are {} batches under batch_name: {}'.format(len(adata.obs['batch'].cat.categories), batch_name))
-    if log: log.info(adata.obs['batch'].value_counts())
+    # if log: log.info(adata.obs['batch'].value_counts())
     
     if log: log.info('Preprocessing')
     # if not issparse(adata.X):
@@ -292,8 +292,18 @@ def preprocessing_rna(
 
     if log: log.info('Finding variable features')
     if type(n_top_features) == int and n_top_features>0:
-        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_features, batch_key='batch') #, inplace=False, subset=True)
-        adata = adata[:, adata.var.highly_variable].copy()
+        batch_counts = adata.obs['batch'].value_counts()
+        valid_batches = batch_counts[batch_counts >= min_cell_per_batch].index
+        if len(valid_batches) < 2:
+            adata_ = adata
+        if len(valid_batches) < len(batch_counts):
+            adata_ = adata[adata.obs['batch'].isin(valid_batches)].copy()
+            print(batch_counts[batch_counts >= min_cell_per_batch])
+        else:
+            adata_ = adata
+        if log: log.info(adata_.obs['batch'].value_counts())
+        sc.pp.highly_variable_genes(adata_, n_top_genes=n_top_features, batch_key='batch') #, inplace=False, subset=True)
+        adata = adata[:, adata_.var.highly_variable].copy()
     elif type(n_top_features) != int:
         raw = adata.raw.to_adata()
         adata = reindex(adata, n_top_features)
@@ -708,7 +718,7 @@ def load_data(
         min_cells=3, 
         target_sum=None,
         n_top_features=None, 
-        min_cell_per_batch=10,
+        min_cell_per_batch=200,
         keep_mt=False,
         backed=False,
         batch_size=64, 
