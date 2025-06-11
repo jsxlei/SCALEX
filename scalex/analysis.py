@@ -6,7 +6,6 @@ from gseapy import barplot, dotplot
 import gseapy as gp
 import matplotlib.pyplot as plt
 from collections import Counter
-from multiprocessing import Pool, cpu_count
 
 from scalex.data import aggregate_data
 
@@ -307,9 +306,6 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
     filter_pseudo = True if set_type == 'gene' else False
 
     if across is not None:
-        if n_jobs is None:
-            n_jobs = min(cpu_count(), 32)
-            
         # Prepare arguments for parallel processing
         args_list = []
         for c in np.unique(adata.obs[across]):
@@ -320,6 +316,9 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
         if n_jobs == 1:
             results = [_process_group(args) for args in args_list]
         else:
+            from multiprocessing import Pool, cpu_count
+            if n_jobs is None:
+                n_jobs = min(cpu_count(), 32)
             with Pool(n_jobs) as pool:
                 results = pool.map(_process_group, args_list)
             
