@@ -6,6 +6,7 @@ from gseapy import barplot, dotplot
 import gseapy as gp
 import matplotlib.pyplot as plt
 from collections import Counter
+from anndata import concat
 
 from scalex.data import aggregate_data
 
@@ -308,10 +309,17 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
     if across is not None:
         # Prepare arguments for parallel processing
         args_list = []
+        adata_avg_list = []
         for c in np.unique(adata.obs[across]):
             adata_ = adata[adata.obs[across] == c].copy()
+            adata_ = adata_[adata_.obs.dropna(subset=[groupby]).index].copy()
             args_list.append((adata_, groupby, set_type, top_n, filter_pseudo, kwargs))
-            
+            adata_avg_c = aggregate_data(adata_, groupby=groupby, processed=processed, scale=True)
+            adata_avg_c.obs[across] = c
+            adata_avg_list.append(adata_avg_c)
+
+        adata_avg = concat(adata_avg_list)
+
         # Process groups in parallel or sequentially based on n_jobs
         if n_jobs == 1:
             results = [_process_group(args) for args in args_list]
@@ -332,9 +340,22 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
         markers_list = np.array([gene for gene, count in gene_counts.items() if count >= occurance])
         print('There are {} genes with at least {} occurrences'.format(len(markers_list), occurance))
 
-    adata.obs[groupby+'_'+across] = adata.obs[groupby].astype(str) + '_' + adata.obs[across].astype(str)
-    groupby = groupby+'_'+across
-    adata_avg = aggregate_data(adata, groupby=groupby, processed=processed, scale=True)
+        # adata_avg_list = []
+        # # gene_cluster_dict = {}
+        # for c in np.unique(adata.obs[across]):
+        #     adata_ = adata[adata.obs[across] == c].copy()
+        #     adata_avg = aggregate_data(adata_, groupby=groupby, processed=processed, scale=True)
+        #     adata_avg_list.append(adata_avg)
+        #     adata_avg.obs[across] = c
+
+        # adata_avg = concat(adata_avg_list)
+
+    # adata_avg = aggregate_data(adata, groupby=groupby, processed=processed, scale=True)
+    adata_avg.obs[groupby+'_'+across] = adata_avg.obs[groupby].astype(str) + '_' + adata_avg.obs[across].astype(str)
+    # groupby = groupby+'_'+across
+
+
+    # adata_avg = aggregate_data(adata, groupby=groupby, processed=processed, scale=True)
     adata_avg_ = adata_avg[:, markers_list].copy()
 
     gene_cluster_dict = cluster_program(adata_avg_, n_clusters=n_clusters)
