@@ -230,7 +230,7 @@ def SCALEX(
         ref = sc.read_h5ad(os.path.join(projection, 'adata.h5ad'))
         adata = concat(
             [ref, adata],
-            join='outer',
+            # join='outer',
             label='projection',
             keys=['reference', 'query'],
             index_unique=None,

@@ -2,6 +2,8 @@ import pyranges as pr
 import os
 from scalex.atac.bedtools import bed_to_df
 
+GTF_FILE = os.path.expanduser('~/.scalex/gencode.v38.annotation.gtf.gz')
+
 GENE_COLUMNS = ['Chromosome', 'Start', 'End', 'Strand', 'gene_name', 'gene_ids']
 import re
 def ens_trim_version(x: str):
@@ -117,3 +119,56 @@ def get_gtf(gtf_file, genome='hg38', drop_by='gene_name'):
     gtf = pr.read_gtf(gtf_file)
     gtf = gtf.df.drop_duplicates(subset=[drop_by], keep="first")
     return pr.PyRanges(gtf)
+
+
+import pyranges as pr
+import re
+import warnings
+
+def read_gencode_transcripts(gtf_dir=GTF_FILE, release="latest", transcript_choice="MANE_Select",
+                             annotation_set="basic", gene_type=r"lncRNA|protein_coding|IG_.*_gene|TR_.*_gene",
+                             attributes=None, features=("transcript", "exon"), timeout=300):
+    """
+    gtf_dir: path to GTF file or folder containing GTFs
+    release: "latest" or specific release
+    transcript_choice: "MANE_Select", "Ensembl_Canonical", or "all"
+    annotation_set: "basic" or "comprehensive"
+    gene_type: regex for gene types
+    attributes: list of attributes to keep ['gene_id', 'gene_type', 'gene_name', 'transcript_id']
+    features: tuple of features to keep ('transcript', 'exon')
+    timeout: ignored in Python
+    """
+    if attributes is None:
+        attributes = ["gene_id", "gene_type", "gene_name", "transcript_id"]
+
+    # Determine species from release
+    species = "mouse" if re.search(r"(^M)|latest_mouse", release) else "human"
+
+    if species == "mouse" and transcript_choice == "MANE_Select":
+        warnings.warn("MANE_Select transcripts not available for mouse. Defaulting to Ensembl_Canonical")
+        transcript_choice = "Ensembl_Canonical"
+
+    # Determine which tags to filter by
+    tags = [transcript_choice] if transcript_choice != "all" else []
+
+    # Read GTF using PyRanges
+    gtf = pr.read_gtf(gtf_dir)
+
+    # Filter features
+    gtf = gtf[gtf.Feature.isin(features)]
+
+    # Filter gene types using regex
+    gtf = gtf[gtf.gene_type.str.contains(gene_type)]
+
+    # Keep only desired attributes
+    keep_cols = ['Chromosome', 'Start', 'End', 'Strand', 'Feature'] + attributes
+    keep_cols = [c for c in keep_cols if c in gtf.columns]
+    gtf = gtf[keep_cols]
+
+    # Filter by transcript tags if requested
+    if transcript_choice == "MANE_Select" and "MANE_Select" in gtf.columns:
+        gtf = gtf[gtf.MANE_Select]
+    elif transcript_choice == "Ensembl_Canonical" and "Ensembl_Canonical" in gtf.columns:
+        gtf = gtf[gtf.Ensembl_Canonical]
+
+    return gtf

@@ -718,7 +718,7 @@ def load_data(
         min_cells=3, 
         target_sum=None,
         n_top_features=None, 
-        min_cell_per_batch=200,
+        min_cell_per_batch=10,
         keep_mt=False,
         backed=False,
         batch_size=64, 
