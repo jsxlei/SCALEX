@@ -12,26 +12,36 @@ from scalex.data import aggregate_data
 
 from scalex.atac.bedtools import intersect_bed, bed_to_df, df_to_bed
 from scalex.pp.annotation import format_rna, format_atac
-from scalex.analysis import get_markers, flatten_dict
+from scalex.analysis import get_markers, flatten_dict, flatten_list
 # from scalex.linkage.utils import row_wise_correlation
 
 class Linkage:
-    def __init__(self, rna=None, atac=None, rna_avg=None, atac_avg=None, groupby='cell_type', gtf=None, up=100_000, down=100_000):
+    def __init__(
+            self, 
+            rna=None, atac=None, 
+            rna_avg=None, atac_avg=None, 
+            groupby='cell_type', 
+            order=None,
+            gtf=None, up=100_000, down=100_000):
         self.rna = rna
         self.atac = atac
         self.gtf = gtf if gtf is not None else os.path.expanduser('~/.scalex/gencode.v38.annotation.gtf.gz')
         self.up = up
         self.down = down
 
-        self.format_data()
         if rna_avg is None or atac_avg is None:
+            self.format_data()
             self.aggregate_data(groupby=groupby)
         else:
             self.rna_avg = rna_avg
             self.atac_avg = atac_avg
         self.get_edges(up=up, down=down)
         self.get_peak_gene_corr()
+        self.adj_dicts = {}
 
+    # def reorder_cell_types(self, order):
+    #     self.rna_avg = self.rna_avg[order, :]
+    #     self.atac_avg = self.atac_avg[order, :]
 
     def format_data(self):
         self.rna = format_rna(self.rna.copy(), gtf=self.gtf)
@@ -47,6 +57,33 @@ class Linkage:
         self.rna_avg = self.rna_avg[self.rna_avg.obs[groupby].isin(common)]
         self.atac_avg = self.atac_avg[self.atac_avg.obs[groupby].isin(common)]
         print(common)
+
+    def get_linked_peak_adj(self, corr_threshold=0.7):
+        adj_dict = {}
+        for i in range(len(self.peak_gene_corr)):
+            gene = self.rna_var.index[self.edges[0, i]]
+            peak = self.atac_var.index[self.edges[1, i]]
+            if gene not in adj_dict:
+                adj_dict[gene] = []
+            if self.peak_gene_corr[i] > corr_threshold:
+                adj_dict[gene].append(peak)
+        self.adj_dicts[corr_threshold] = adj_dict
+        # return adj_dict
+        
+    def get_linked_peaks(self, gene_dict, corr_threshold=0.7, return_unlinked_genes=False):
+        if corr_threshold not in self.adj_dicts:
+            self.get_linked_peak_adj(corr_threshold=corr_threshold)
+        adj_dict = self.adj_dicts[corr_threshold]
+        linked_peaks = {}
+        unlinked_genes = {}
+        for name, gene_list in gene_dict.items():
+            linked_peaks[name] = flatten_list([adj_dict[gene] for gene in gene_list if gene in adj_dict])
+            unlinked_genes[name] = [gene for gene in gene_list if gene not in adj_dict]
+        if return_unlinked_genes:
+            return linked_peaks, unlinked_genes
+        return linked_peaks
+    
+
 
     def get_cell_type_links(self, marker_genes, marker_peaks, groupby="cell_type"):
         links = {}
@@ -76,6 +113,7 @@ class Linkage:
         self.edges = intersect_bed(self.rna_var, self.atac_var, up=up, down=down, add_distance=True)
         self.gene_to_index = {gene: i for i, gene in enumerate(self.rna_var.index)}
         self.peak_to_index = {peak: i for i, peak in enumerate(self.atac_var.index)}    
+
 
     def get_peak_gene_corr(self):
         peak_vec = self.atac_avg.to_df().iloc[:, self.edges[1]].T.values

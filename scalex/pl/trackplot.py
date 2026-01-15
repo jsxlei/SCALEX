@@ -977,6 +977,9 @@ def trackplot_combine(
     region: str,
     cell_groups: pd.Series,
     cell_counts: pd.Series,
+    extend: int = 0,
+    up: int = None,
+    down: int = None,
     transcripts = None,
     loops = None,
     loci = None,
@@ -1064,6 +1067,14 @@ def trackplot_combine(
     # Parse region
     chrom, start, end = re.split(r"[:-]", region)
     start, end = int(start), int(end)
+    if up is not None:
+        start -= up
+    else:
+        start -= extend
+    if down is not None:
+        end += down
+    else:
+        end += extend
     
     if return_data:
         # Return data from both functions
@@ -1138,7 +1149,10 @@ def trackplot_combine(
     bin_edges = np.arange(start, end, bin_size)
     bin_centers = bin_edges[:-1] + (bin_size // 2)
     
-    groups = cell_groups.unique()
+    if pd.api.types.is_categorical_dtype(cell_groups):
+        groups = cell_groups.cat.categories
+    else:
+        groups = cell_groups.unique()
     n_groups = len(groups)
     coverage = {g: np.zeros(len(bin_centers), dtype=int) for g in groups}
     

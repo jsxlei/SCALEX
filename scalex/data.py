@@ -859,7 +859,7 @@ def download_file(url, local_filename):
         print(f"An error occurred while downloading the file: {e}")
 
 
-def rank_dict(adata, cell_type=None):
-    if 'rank_genes_groups' not in adata.uns:
-        sc.tl.rank_genes_groups(adata, cell_type)
-    return pd.DataFrame(adata.uns['rank_genes_groups']['names']).head().to_dict(orient='list')
+# def rank_dict(adata, cell_type=None):
+#     if 'rank_genes_groups' not in adata.uns:
+#         sc.tl.rank_genes_groups(adata, cell_type)
+#     return pd.DataFrame(adata.uns['rank_genes_groups']['names']).head().to_dict(orient='list')

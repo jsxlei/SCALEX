@@ -97,71 +97,340 @@ macrophage_markers = {
                    'SLC47A1', 'SULT1C2', 'TFCP2L1', 'TMEM255A', 'ZNF589'],
     'Foam_SPP1+': ['ADCY3', 'ANXA2', 'ARHGAP10', 'ATP6V0D2', 'C4orf45', 'CD109', 'CELSR1', 'CSF1', 'CSTB', 'CT69', 'DPP4', 
                   'FABP5', 'FNIP2', 'HRK', 'ITGAX', 'ITGB3', 'KCP', 'KIAA0319', 'LGALS3', 'LINC01010', 'LINC02099', 'MGLL', 
-                  'MIR155HG', 'MYO1E', 'NUPR1', 'PRKCH', 'RAI14', 'RALA', 'RCAN3', 'SCD', 'SH3D21', 'SHC3', 'SLC22A15', 
+                  'MIR155HG', 'MYO1E', 'NUPR1', 'PRKCH', 'RAI14', 'RALA', 'RCAN3', 'SCD', 'SH3D21', 'SHC3', 'SLC22A15', 'LPL', 
                   'SLC26A11', 'SLC43A3', 'SLC5A4-AS1', 'SPP1', 'TM4SF19', 'TM4SF19-AS1', 'WHRN', 'ZBTB7C', 'ZFYVE28', 'ZMIZ1-AS1'],
-    'Foam Shared': ['ACE', 'BBS5', 'CBLB', 'CLIP4', 'DCSTAMP', 'GPNMB', 'KCNMA1', 'MITF', 'PLA2G7', 'PLPP3', 'PPARG', 'SAMD4A', 'SLC38A6', 'SNTB1', 'TPRG1'], 
-    'Macrophage Derived Foam Cell Differentiation': ['CSF1', 'ITGB3', 'NR1H3', 'PPARG', 'CD36'],
-    'Lipid Storage': ['ITGB3', 'NR1H3', 'PPARG', 'TTC39B'],
-    'Cholesterol Efflux': ['ABCA7', 'ABCA5', 'APOA2', 'ABCA8', 'APOA5', 'APOA4', 'NPC1', 'STX12', 'APOC1', 'NPC2',  'APOC3', 'APOC2', 'SOAT1', 'ABCG1', 'APOE', 'SCARB1' ],
-    'Endocytosis': ['DNM3', 'MYO1E', 'CTTN', 'MYO6', 'MICALL1', 'ENTHD1', 'APOE', 'CD36', 'LRP12', 'ATP9A', 'CORO1C'],
-    'Response to Cytokine': ['CIITA', 'PID1', 'IL1R1', 'FLT3', 'AFF3'],
-    'Phagocytosis': ['YES1', 'LYN', 'SRC', 'LIMK1', 'PRKCD', 'SYK', 'PRKCE', 'PLA2G6', 'PLD2', 'VAV1', 'HCK', 'VAV2', 'PTK2', 'VAV3', 'FGR', 'FCGR2B', 'PAK1', 'FYN', 'MYO1G'],
-    'Inflammatory Response': ['CXCL8', 'SLC11A1', 'C5AR2', 'WNT5A', 'C5AR1', 'NLRC4', 'CXCL3', 'CXCL2', 
-                              'THBS1', 'NFKB1', 'IL6', 'OLR1', 'CD44'],
-    'Cytokine Production': ['APP', 'SLC11A1', 'WNT5A', 'LAPTM5', 'EIF2AK3', 'HIF1A', 'MALT1', 'EREG'], 
-    'Inflammatory chemotaxis': ['KLRK1', 'CCL7', 'XCL1', 'CCL5', 'CCL4', 'CCL3'],
-    'Response To Type II Interferon (GO:0034341)': ['CCL26', 'CCL25', 'GBP6', 'CCL24', 'CD74', 'CCL23', 'CCL22', 'CCL21', 'CCL20', 'WNT5A', 'XCL1', 'RPL13A', 'TLR2', 'BST2', 
-                                                    'IRF8', 'XCL2', 'TLR4', 'CALM1', 'SLC26A6', 'IFITM2', 'CCL3L1', 'CD40', 'CITED1', 'IFITM3', 'MEFV', 'IFITM1', 'SP100', 
-                                                    'AQP4', 'CX3CL1', 'CXCL16', 'GBP1', 'CASP1', 'CIITA', 'GBP2', 'IL12RB1', 'GBP5', 'SNCA', 'GBP4', 'STAT1', 'DAPK1',
-                                                    'GCH1', 'SLC11A1', 'DAPK3', 'EPRS1', 'PDE12', 'CD47', 'SHFL', 'GAPDH', 'TDGF1', 'CCL15', 'SLC22A5', 'CCL14', 'CALCOCO2', 
-                                                    'CCL13', 'CCL11', 'CCL4L1', 'IL23R', 'CAMK2A', 'AIF1', 'NUB1', 'CYP27B1', 'SYNCRIP', 'CCL8', 'CCL7', 'CCL5', 'KYNU', 'UBD', 
-                                                    'CCL4', 'HLA-DPA1', 'SIRPA', 'CCL3', 'CCL2', 'CCL1', 'CCL19', 'CD58', 'LGALS9', 'TRIM21', 'CCL18', 'CCL17', 'CCL16'],
-    'Angiogenesis': ['BTG1','CXCL8','FLT1','CEMIP2', 'WNT5A', 'HIF1A', 'THBS1', 'HIPK2', 'VEGFA', 
-                     'IL6', 'RGCC', 'AGO2', 'HMOX1', 'CTNNB1', 'GLUL'],
-    'Regulation of SMC proliferation': ['IL6', 'NR4A3', 'HMOX1', 'CTNNB1', 'IL6R', 'THBS1', 'EREG',
-                            'IL6', 'RGCC', 'CLEC7A', 'PDE4B', 'HMOX1', 'CD226', 'IL6R'],
+    # 'Foam Shared': ['ACE', 'BBS5', 'CBLB', 'CLIP4', 'DCSTAMP', 'GPNMB', 'KCNMA1', 'MITF', 'PLA2G7', 'PLPP3', 'PPARG', 'SAMD4A', 'SLC38A6', 'SNTB1', 'TPRG1'], 
     'Resident': ['ABCA9-AS1', 'ACSM4', 'C4BPB', 'CD163', 'CD163L1', 'CD209', 'CLEC4G', 'COLEC12', 
-                 'CR1', 'EDA', 'F13A1', 'FCER2', 'FGF13', 'FOLR2', 'GFRA2', 'IL2RA', 'ITSN1', 
-                 'LGI2', 'LILRB5', 'LINC01645', 'LINC01839', 'LYPLAL1-AS1', 'LYVE1', 'MAMDC2', 
-                 'ME1', 'MPPED2', 'MRC1', 'NAV2-AS4', 'NAV2-IT1', 'NEURL2', 'PDGFC', 'PLEKHG5', 
-                 'PLTP', 'RGL1', 'SCN9A', 'SELENOP', 'SHE', 'SLC39A12', 'SLC40A1', 'STON2', 
-                 'TBX1', 'TDRD10', 'THBS1', 'TMEM236', 'TRIM50'],
+                'CR1', 'EDA', 'F13A1', 'FCER2', 'FGF13', 'FOLR2', 'GFRA2', 'IL2RA', 'ITSN1', 
+                'LGI2', 'LILRB5', 'LINC01645', 'LINC01839', 'LYPLAL1-AS1', 'LYVE1', 'MAMDC2', 
+                'ME1', 'MPPED2', 'MRC1', 'NAV2-AS4', 'NAV2-IT1', 'NEURL2', 'PDGFC', 'PLEKHG5', 
+                'PLTP', 'RGL1', 'SCN9A', 'SELENOP', 'SHE', 'SLC39A12', 'SLC40A1', 'STON2', 
+                'TBX1', 'TDRD10', 'THBS1', 'TMEM236', 'TRIM50'],
     'MonoMac': ['AATBC', 'AC104809.2', 'ADGRE3', 'APOBEC3A', 'ARHGAP29', 'CD300E', 'CDA', 'CEACAM3', 
                 'CFP', 'EIF4E3', 'F5', 'FCN1', 'GBP5', 'GLT1D1', 'GPR174', 'LILRA1', 'LILRA5', 'LIN7A', 
                 'LINC01619', 'LINC02085', 'LIPN', 'MCTP2', 'MEFV', 'NEBL', 'NLRP12', 'P2RX1', 'PADI4', 
                 'PFKFB4', 'PLAC8', 'PLCB1', 'PRR16', 'PTGER2', 'S100A4', 'SLC2A6', 'SPOCK1', 'TMTC1', 'VCAN', 'VCAN-AS1'],
-    'Proferating': ['ACTB', 'ACTG1', 'ACTN4', 'AIF1', 'ALCAM', 'ANLN', 'ANPEP', 'ARHGAP11A', 'ARHGAP11B', 'ARHGDIA', 'ARL6IP1', 'ASPM', 'ATAD2', 'ATAD5', 'ATP5F1E', 'ATP6V0B', 
-                'AURKB', 'BARD1', 'BLM', 'BRCA1', 'BRIP1', 'BSG', 'BUB1B', 'C15orf48', 'C21orf58', 'CALM1', 'CALR', 'CD52', 'CDCA2', 'CENPE', 'CENPF', 'CENPI', 'CENPK', 'CEP55', 
-                'CFL1', 'CHEK2', 'CIP2A', 'CIT', 'CKAP2', 'CKAP2L', 'CLIC1', 'CLSPN', 'COX4I1', 'COX6A1', 'COX8A', 'CRIP1', 'CYTOR', 'DDX11', 'DEPDC1B', 'DIAPH3', 'DTL', 'EEF1A1', 
-                'EEF1G', 'EIF3K', 'EMP3', 'ENO1', 'ESPL1', 'EZH2', 'FAM111B', 'FANCA', 'FANCD2', 'FANCI', 'FAU', 'FLNA', 'FLNB', 'FOXM1', 'GABARAP', 'GAPDH', 'GEN1', 'GPSM2', 
-                'GTSE1', 'HCST', 'HLA-A', 'HLA-B', 'HMGB2', 'HMGN2', 'HSP90AB1', 'HSP90B1', 'HSPA5', 'IQGAP3', 'ITGB2', 'KCNK13', 'KIF11', 'KIF14', 'KIF15', 'KIF18A', 'KIF18B', 
-                'KIF20B', 'KIF2C', 'KIF4A', 'KIFC1', 'KNL1', 'KNTC1', 'LDHA', 'LDHB', 'LGALS1', 'LIN54', 'LINC01572', 'LSM7', 'LSP1', 'LYZ', 'MELK', 'MIF', 'MKI67', 'MYL6', 'NACA', 
-                'NCAPD3', 'NCAPG', 'NCAPG2', 'NCAPH', 'NCL', 'NDC80', 'NME2', 'NPC2', 'NSD2', 'NUF2', 'NUSAP1', 'OAZ1', 'ORC6', 'P4HB', 'PARPBP', 'PCBP1', 'PDIA3', 'PDIA6', 'PFN1', 
-                'PGAM1', 'PKM', 'PLK4', 'PLP2', 'POLE2', 'POLQ', 'PPIA', 'PPIB', 'PRC1', 'PRDX1', 'PRKCSH', 'PRR11', 'PTMA', 'PTPN22', 'PTPN7', 'RACK1', 'RAD51AP1', 'RAN', 'REEP5', 
-                'RPL10', 'RPL10A', 'RPL11', 'RPL12', 'RPL13', 'RPL13A', 'RPL14', 'RPL15', 'RPL18', 'RPL19', 'RPL22', 'RPL23', 'RPL23A', 'RPL24', 'RPL26', 'RPL27A', 'RPL28', 'RPL29', 
-                'RPL3', 'RPL30', 'RPL32', 'RPL35', 'RPL35A', 'RPL36', 'RPL36A', 'RPL37', 'RPL37A', 'RPL38', 'RPL39', 'RPL4', 'RPL41', 'RPL5', 'RPL7', 'RPL7A', 'RPL8', 'RPLP0', 'RPLP1', 
-                'RPLP2', 'RPS10', 'RPS11', 'RPS12', 'RPS13', 'RPS14', 'RPS15', 'RPS15A', 'RPS17', 'RPS18', 'RPS19', 'RPS2', 'RPS20', 'RPS21', 'RPS23', 'RPS24', 'RPS25', 'RPS26', 'RPS27A', 
-                'RPS28', 'RPS29', 'RPS3', 'RPS4X', 'RPS5', 'RPS6', 'RPS7', 'RPS8', 'RPSA', 'RRM1', 'RRM2', 'S100A10', 'S100A4', 'SAE1', 'SERF2', 'SET', 'SGO2', 'SH3BGRL3', 'SHCBP1', 
-                'SLC25A6', 'SMC2', 'SMC4', 'SNHG29', 'SNRPD1', 'SPC25', 'ST14', 'STIL', 'TACC3', 'TAGLN2', 'TMBIM6', 'TMED9', 'TMSB10', 'TMSB4X', 'TNFRSF11A', 'TOP2A', 'TPI1', 'TPX2', 
-                'TREM2', 'TSPO', 'TUBA1B', 'TUBB', 'TUBB4B', 'UBA52', 'UHRF1', 'VAMP8', 'VIM', 'WDHD1', 'WDR62', 'WDR76', 'ZGRF1', 'ZNF367'],
-    'MHC Class I': ['PDIA3', 'ACE', 'SAR1B', 'ERAP1', 'ERAP2', 'HFE', 'IDE', 'TAP2', 'HLA-A', 'TAP1', 'TAPBPL', 'IFI30', 'TAPBP', 'MFSD6', 'CLEC4A', 'B2M', 'CALR', 'FCER1G'],
-    'MHC Class II': ['HLA-DRB5', 'FCER1A', 'HLA-DQA1', 'HLA-DQB2', 'GAPT'],
-    'Membrane Lipid Catabolic Process': ['FUCA1', 'SGPL1', 'SMPD2', 'MGST2', 'NAGA', 'ENPP2', 'PPT1', 'SMPDL3B'],
-    'T-helper 1 Cell Cytokine': ['IL1R1', 'IL18R1'],
-    'T Cell Activation': ['JAML', 'IRF4', 'RHOH', 'CD1C'],
-
-
-    # 'metabolic adaptation': ['ALDOA', 'LDHA', 'SLC2A1', 'IDH1', 'VHL'],
-    #             'angiogenesis': ['VEGFA', 'TGFB1', 'ADM', 'PLOD1', 'ID2', 'SPP1'],
-    #             'autophagy': ['BNIP3'],
-    #             'apoptosis': ['ENO1'],
-    #             'TAM chemotaxos': ['MIF', 'LGALS3', 'IL1B'],
-    #             'lipid response': ['ACAT2', 'CAV1', 'NAMPT', 'VLDLR', 'DGAT1'],
-    #             'immune regulation': ['CD163', 'CD163L1', 'FCGR2B', 'TGFB2'],
-    #             'matrix remodeling': ['DSE', 'MMP7', 'PLAU', 'PLAUR'],
-    #             'mesenchymal like': ['CD44', 'NAMPT', 'PLAUR', 'VIM'],
-    #             'staining markers': ['TREM2', 'CD36', 'MRC1', 'CD9', 'MSR1']
 }
+
+selected_GO_terms = [
+
+]
+
+gene_modules = {
+    # --- Foam Cell & Lipid Metabolism ---
+    'Foam_SPP1+': ['ADCY3', 'ANXA2', 'ARHGAP10', 'ATP6V0D2', 'C4orf45', 'CD109', 'CELSR1', 'CSF1', 'CSTB', 'CT69', 'DPP4', 
+                  'FABP5', 'FNIP2', 'HRK', 'ITGAX', 'ITGB3', 'KCP', 'KIAA0319', 'LGALS3', 'LINC01010', 'LINC02099', 'MGLL', 
+                  'MIR155HG', 'MYO1E', 'NUPR1', 'PRKCH', 'RAI14', 'RALA', 'RCAN3', 'SCD', 'SH3D21', 'SHC3', 'SLC22A15', 'LPL', 
+                  'SLC26A11', 'SLC43A3', 'SLC5A4-AS1', 'SPP1', 'TM4SF19', 'TM4SF19-AS1', 'WHRN', 'ZBTB7C', 'ZFYVE28', 'ZMIZ1-AS1'],
+    'Foam_SPP1-': ['ACP5', 'ADTRP', 'AFAP1L1', 'ALDH1A1', 'ALOX15B', 'ANKRD29', 'BEAN1', 'CCL18', 'CD22', 'CHIT1', 
+                   'CHRNA1', 'CPEB1', 'CPM', 'CYP27A1', 'DNAJC5B', 'FCHO2', 'GALNTL6', 'HS3ST2', 'HS3ST3A1', 'HTRA4', 
+                   'ITGAD', 'KCNA2', 'KCNJ5', 'KCNMA1-AS3', 'KLHDC8B', 'LINC01091', 'LINC01500', 'LINC01648', 'LINC01857', 
+                   'LRRC39', 'MCOLN3', 'MLPH', 'MYO1D', 'PDE3A', 'PKD2L1', 'PNPLA3', 'RARRES1', 'SLC18B1', 'SLC19A2', 
+                   'SLC47A1', 'SULT1C2', 'TFCP2L1', 'TMEM255A', 'ZNF589'],
+    'Foam Cell Differentiation': [
+        'CSF1', 'ITGB3', 'NR1H3', 'PPARG', 'CD36', 'LIPA', 
+        'TREM2', 'SPP1', 'GPNMB', 'MSR1', 'LPL', 'ABCG1', 'CD9', 'LGALS3', 'FABP4'
+    ],
+    'Cell Adhesion & Migration': [
+        'ITGA3', 'PALLD', 'MYOF', 'MYO1E', 'ASAP1', 'DOCK3', 
+        'ICAM1', 'VCAM1', 'ITGAM', 'ITGAX', 'SELE'
+    ],
+    'Regulation of Foam Cell Differentiation': ['ADIPOQ', 'MSR1', 'PRKCH', 'PPARA', 'NR1H3', 'PLA2G2A', 'ABCA5', 'NR1H2', 'IL18', 'AGT', 'NFKB1', 
+                                                'ALOX15B', 'NFKBIA', 'LCP1', 'PLA2G10', 'ABCG1', 'AGTR1', 'PPARG', 'PF4', 'CRP', 'CETP', 'CSF2', 
+                                                'CSF1', 'ITGB3', 'PLA2G3', 'PLA2G5', 'MAPK9', 'ITGAV', 'CD36', 'APOB'],
+    'Lipid Metabolism': ['STARD3', 'G6PD', 'HMGCS1', 'APOA2', 'APOA4', 'DHCR24', 'IL4', 'SOAT2', 'APOA1', 'CYP11B2', 'FDX1', 'CYP11B1', 
+                         'SOAT1', 'ABCG1', 'DHCR7', 'CES1', 'AKR1D1', 'SH2D2A', 'LCAT', 'HSD17B7', 'CYP7A1', 'CH25H', 'SULT2A1', 'NPC1L1', 
+                         'PMVK', 'ARV1', 'LBR', 'APOL2', 'FDFT1', 'CYP51A1', 'OSBPL5', 'ABCA5', 'LSS', 'NR0B2', 'ACLY', 'SQLE', 'CYP27A1', 
+                         'SULT2B1', 'GLB1', 'PLPP6', 'SNX17', 'ANGPTL3', 'MVD', 'PPARD', 'OSBPL1A', 'MVK', 'CETP', 'INSIG2', 'INSIG1', 'GBA2', 
+                         'HMGCR', 'CYP46A1', 'GBA1', 'MSMO1', 'CLN8', 'TM7SF2', 'CLN6', 'TSKU', 'PIP4P1', 'NSDHL', 'CYP11A1', 'APOE', 
+                         'SCARF1', 'APOF', 'LDLRAP1', 'ACAA2', 'APOB'],
+    'Lipid Storage': [
+        'ITGB3', 'NR1H3', 'PPARG', 'TTC39B', 
+        'PLIN2', 'PLIN3', 'DGAT1', 'DGAT2', 'SOAT1', 'ACAT1', 'LIPE', 'PNPLA2'
+    ],
+    'Cholesterol Efflux': [
+        'ABCG8', 'ABCA7', 'ABCA5', 'APOA2', 'ABCA8', 'APOA5', 'APOA4', 'NPC1', 'STX12', 'TSKU', 'APOM', 'APOC1', 'NPC2', 'SOAT2', 'APOA1', 
+        'APOC3', 'APOC2', 'SOAT1', 'ABCG1', 'APOE', 'ABCG4', 'ABCG5', 'SCARB1'
+    ],
+    'EGFR Signaling': ['ITGA1', 'RHBDF2', 'PTPN2', 'RHBDF1', 'DUSP3', 'PDE6H', 'PDE6G', 'WDR54', 'PTPN12', 'PLAUR', 'PTK6', 'MMP9', 'AGT', 
+                       'DAB2IP', 'CCDC88A', 'CEACAM1', 'FER', 'RNF126', 'APEX1', 'HIP1R', 'SHKBP1', 'CDH13', 'CNOT9', 'PTPN3', 'ERRFI1', 
+                       'HIP1', 'TSG101', 'BCAR3', 'RALB', 'DGKD', 'RALA', 'MVP', 'CBLC', 'IFI6', 'CBL', 'EGFR', 'PTPRJ', 'NEU3', 'RNF115', 
+                       'ZFYVE28', 'GPER1', 'NUP62', 'MVB12B', 'MVB12A', 'AGR2', 'FAM83B'],
+    # 'Anti-Inflammatory': ['PTPN2', 'NR1H3', 'NR1H2', 'PPARG', 'OTOP1', 'PARP14'],
+    'Anti-Lipid Storage': ['CES1', 'CRP', 'PTPN2', 'OSBPL8', 'PPARA', 'ABHD5', 'NR1H3', 'ITGB3', 'NR1H2', 'TNF', 'TREM2', 'TTC39B', 'NFKBIA',
+                            'IL6', 'ABCG1', 'PPARG', 'ITGAV', 'PNPLA2'],
+    'Phagosome': [
+        'TCIRG1', 'TUBA1B', 'CTSL', 'SEC61G', 'RAB7B', 'ITGB1', 'ITGB2', 'ITGB5', 'LAMP1', 
+        'MSR1', 'ATP6V0C', 'ATP6V0B', 'TFRC', 'CALR', 'TUBB6', 'TUBA1C', 'MARCO', 'ATP6V1F', 
+        'CD36', 'ATP6V1G1', 'RAB5A', 'RAB7A', 'EEA1'
+    ],
+    'Endocytosis': [
+        'DNM3', 'MYO1E', 'CTTN', 'MYO6', 'MICALL1', 'ENTHD1', 'APOE', 'CD36', 'LRP12', 'ATP9A', 
+        'CORO1C', 'CLTC', 'CAV1', 'DNM2'
+    ],
+    'ECM remodeling': [
+        'MMP9', 'MMP14', 'TIMP3', 'COL6A1', 
+        'MMP12', 'MMP2', 'MMP3', 'CTSS', 'CTSK', 'TIMP1', 'TIMP2'
+    ],
+    'Membrane remodeling': [
+        'DCSTAMP', 'MYOF', 'ANO5', 'TM4SF19', 'TSPAN19', 
+        'CHMP4B', 'ESCRT', 'SNX1', 'SNX2'
+    ],
+    'ECM disassembly': ['GSN', 'MMP7', 'MMP8', 'MMP1', 'EXOC8', 'MMP2', 'CMA1', 'MMP3', 'MMP9', 'MMP11', 'MMP10', 'MMP13', 'MMP12', 'MMP15', 'KIF9',
+                         'MMP14', 'LCP1', 'ADAM15', 'MMP19', 'ADAM8', 'PRSS2', 'PRSS1', 'HPN', 'TMPRSS6', 'FURIN', 'LAMC1', 'NOXO1', 'KLK5', 'KLK4', 
+                         'CAPG', 'PLG', 'CTSV', 'CTSS', 'KLK7', 'ADAMTS5', 'ADAMTS15', 'ADAMTS4', 'SH3PXD2B', 'CTSK', 'CTSG', 'FLOT1', 'WASHC1', 'TPSAB1', 'ELANE'],
+    # 'Membrane Lipid Catabolic Process': [
+    #     'FUCA1', 'SGPL1', 'SMPD2', 'MGST2', 'NAGA', 'ENPP2', 'PPT1', 'SMPDL3B', 
+    #     'GBA', 'GLA', 'ASAH1'
+    # ],
+
+    # --- Energy Metabolism ---
+    'Migration': [
+        'VCAN', 'VCAN-AS1', 'CEACAM3', 'S100A4', 'ADGRE3', 'SPOCK1', 
+        'RAC1', 'RHOA', 'CDC42', 'ACTB'
+    ],
+    'Oxidative phosphorylation': [
+        'TCIRG1', 'UQCR11', 'COX5B', 'COX6A1', 'COX6C', 'COX8A', 'UQCRQ', 'NDUFAB1', 'NDUFB2', 
+        'NDUFB7', 'NDUFS5', 'ATP5F1B', 'ATP5MC1', 'ATP5MC3', 'ATP5ME', 'ATP6V0C', 'ATP6V0B', 
+        'ATP6V1F', 'ATP6V1G1', 'ATP5MF', 'MT-CO1', 'MT-CO2', 'SDHB'
+    ],
+    'Glycolysis': [
+        'GALM', 'ENO1', 'FBP1', 'ALDOA', 'GAPDH', 'PGAM1', 'PGK1', 'PKM', 'TPI1', 
+        'HK2', 'PFKP', 'LDHA', 'SLC2A1'
+    ],
+    'Glycolytic Process': ['TPI1', 'PGAM1', 'PKLR', 'PGAM2', 'GCK', 'PKM', 'PFKM', 'PFKL', 'HKDC1', 'PGAM4', 'GAPDHS', 'ALDOC', 
+                           'ALDOB', 'GAPDH', 'GPI', 'PFKFB1', 'PFKFB2', 'UCP2', 'ENO1', 'ENO2', 'ENO3', 'HK1', 'ENO4', 'HK3', 'HK2', 'LDHA', 'PGK2', 'PGK1' ],
+    'MHC Class I': [
+        'PDIA3', 'ACE', 'SAR1B', 'ERAP1', 'ERAP2', 'HFE', 'IDE', 'TAP2', 'HLA-A', 'TAP1', 
+        'TAPBPL', 'IFI30', 'TAPBP', 'MFSD6', 'CLEC4A', 'B2M', 'CALR', 'FCER1G', 
+        'HLA-B', 'HLA-C', 'HLA-E'
+    ],
+    'MHC Ib': ['HLA-C', 'HLA-A', 'HLA-B', 'HLA-G', 'HLA-E', 'HLA-F', 'RAET1E', 'RAET1G', 'ULBP1', 'ULBP3', 'MICA', 'ULBP2', 'MICB'],
+    'MHC I': ['HLA-DRB5', 'HLA-A', 'DNM2', 'HLA-E', 'HLA-F', 'FCGR2B', 'PIKFYVE', 'CLEC4A', 'GNAO1', 'HLA-DRA', 'LGMN', 'HLA-DRB4', 
+         'HLA-DRB3', 'HLA-DQB2', 'HLA-DRB1', 'CTSV', 'IFI30', 'CTSS', 'HLA-DMB', 'MFSD6', 'CTSL', 'HLA-DPA1', 'CTSF', 'FCER1G',
+           'HLA-DOB', 'CTSE', 'HLA-DMA', 'CTSD', 'HLA-DQA2', 'HLA-DOA', 'HLA-DQA1'],
+    #  'Exogenous Peptide Antigen Via MHC Class I': ['IKBKB', 'MFSD6', 'HLA-A', 'LNPEP', 'FCER1G', 'IFI30'],
+    # --- Cell Death & Survival ---
+    'Apoptosis': [ # Regulation / Early
+        'IER3', 'EGR1', 'BTG1', 'BCL2A1', 'PTGER2', 'PTGS2', 'MCL1', 'CDKN1A', 'G0S2', 
+        'BCL2', 'BCL2L1', 'FAS', 'TNFRSF10B'
+    ],
+
+    # 'Antioxidant defense / lipid peroxide removal': [
+    #     'GPX4', 'SLC7A11', 'SLC3A2', 'GSH', 'FSP1', 'GCH1', 
+    #     'NQO1', 'TXN', 'TXNRD1', 'SRXN1', 'GCLC', 'GCLM'
+    # ],
+    # 'Detoxification': [
+    #     'ALOX5AP', 'APOE', 'GPX3', 'MGST2', 'MGST3', 'PRDX1', 'AKR1A1', 'SESN1', 'PRXL2A', 
+    #     'GSTP1', 'GSTM1', 'EPHX1'
+    # ],
+        # --- Proliferation & Regulation ---
+    'Proliferating': [
+        'LINC01572', 'POLQ', 'DIAPH3', 'NSD2', 'CIT', 'STAG1', 'SMC4', 'NCAPG2', 'KNL1', 'EZH2', 
+        'CENPP', 'ATAD2', 'BRIP1', 'MELK', 'CENPK', 'GTSE1', 'C21orf58', 'TOP2A', 'ANLN', 'NUSAP1', 
+        'SUGP2', 'RRM2', 'CEP128', 'CENPE', 'ASPM', 'BRCA1', 'KIF11', 'KIF18B', 'DEK', 'BUB1B', 
+        'CENPF', 'MIR924HG', 'ARHGAP11B', 'NCAPG', 'TACC3', 'BARD1', 'IQGAP3', 'STIL', 'FANCA', 
+        'ASPH', 'BRCA2', 'GEN1', 'MKI67', 'Z94721.1', 'LINC00342', 'KIF4A', 'DTL', 'CCDC18', 
+        'KIFC1', 'CIP2A', 'PRIM2', 'RTTN', 'TMPO', 'TPX2', 'FANCD2', 'KIF14', 'SGO2', 'CENPI', 
+        'AURKB', 'KNTC1', 'FANCI', 'KIF15', 'CEP192', 'NDC80', 'RRM1', 'CLSPN', 'POLE2', 'NCAPD3', 
+        'KIF20B', 'FOXM1', 'HMGN2', 'RBL1', 'NCAPH', 'FAM111A', 'ATAD5', 'CDK5RAP2', 'MASTL', 
+        'PRC1', 'PRR11', 'SHCBP1', 'KIF2A', 'WDR62', 'PARPBP', 'MIR4435-2HG', 'CKAP2L', 'SMC6', 
+        'CYTOR', 'ZGRF1', 'ARHGAP11A', 'CKAP5', 'NUF2', 'PLK4'
+    ],
+
+    # --- Inflammation & Immune Signaling ---
+
+    'Inflammatory': [
+        'IL1B', 'NLRP3', 'G0S2', 'SOD2', 'CEBPB', 'NFKBIA', 'INHBA', 'TNF', 'TREM1', 
+        'CCL2', 'CCL20', 'CCL7', 'CXCL1', 'CXCL2', 'CXCL3', 'CXCL8', 
+        'IL6', 'IL1A', 'IL18', 'PTGS2'
+    ],
+    'Inflammatory Response': [
+        'CXCL8', 'SLC11A1', 'C5AR2', 'WNT5A', 'C5AR1', 'NLRC4', 'CXCL3', 'CXCL2', 
+        'THBS1', 'NFKB1', 'IL6', 'OLR1', 'CD44', 'TLR4', 'TLR2', 'MYD88', 'CD14'
+    ],
+
+    'Cytokine Production': [
+        'APP', 'SLC11A1', 'WNT5A', 'LAPTM5', 'EIF2AK3', 'HIF1A', 'MALT1', 'EREG', 
+        'TNF', 'IL10', 'TGFB1', 'IL12B', 'IL23A'
+    ],
+
+    # --- Antigen Presentation ---
+
+    # 'MHC Class II': [
+    #     'HLA-DRB5', 'DNM2', 'FCGR2B', 'PIKFYVE', 'GNAO1', 'HLA-DRA', 'LGMN', 'HLA-DRB4', 'HLA-DRB3', 'HLA-DQB2', 'HLA-DRB1', 'MARCHF1', 'CTSV', 'IFI30', 
+    #     'CTSS', 'HLA-DMB', 'CTSL', 'HLA-DPA1', 'MARCHF8', 'CTSF', 'FCER1G', 'HLA-DOB', 'CTSE', 'HLA-DMA', 'CTSD', 'HLA-DQA2', 'HLA-DOA', 'HLA-DQA1'
+    # ],
+
+   
+
+    # --- Structural & Functional ---
+    # 'Phagocytosis': [
+    #     'YES1', 'LYN', 'SRC', 'LIMK1', 'PRKCD', 'SYK', 'PRKCE', 'PLA2G6', 'PLD2', 'VAV1', 
+    #     'HCK', 'VAV2', 'PTK2', 'VAV3', 'FGR', 'FCGR2B', 'PAK1', 'FYN', 'MYO1G', 
+    #     'MERU', 'AXL', 'TYRO3', 'GULP1'
+    # ],
+    # 'Regulation of Phagocytosis': ['TUB', 'IL15', 'SFTPD', 'APLP2', 'APOA2', 'AZU1', 'MERTK', 'IL1B', 'PTPRC', 'RAB31', 'FCGR2B', 'APOA1',
+    #                                 'IFNG', 'SPACA3', 'CALR', 'DOCK2', 'GAS6', 'FCN1', 'FPR2', 'TNF', 'IL2RG', 'PTPRJ', 'TREM2', 'C4A', 
+    #                                 'SIRPB1', 'C4B', 'PYCARD', 'UXT', 'CLEC7A', 'CD300LF', 'FCER1G', 'LYAR', 'CAMK1D', 'IL15RA', 'AHSG', 'NCKAP1L'],
+
+    'Angiogenesis': [
+        'BTG1', 'CXCL8', 'FLT1', 'CEMIP2', 'WNT5A', 'HIF1A', 'THBS1', 'HIPK2', 'VEGFA', 
+        'IL6', 'RGCC', 'AGO2', 'HMOX1', 'CTNNB1', 'GLUL', 
+        'KDR', 'FGF2', 'PDGFA'
+    ],
+    'Iron metabolism': [
+        'TFRC', 'FTH1', 'FTL', 'FPN1', 'NCOA4', 'HMOX1', 
+        'SLC40A1', 'IREB2', 'ACO1'
+    ],
+    'Ferroptosis': [
+        'FTH1', 'FTL', 'GPX4', 'SLC40A1', 'HMOX1', 
+        'ACSL4', 'TFRC', 'NCOA4', 'SLC7A11', 'SAT1', 'GSS'
+    ],
+
+    'MonoMac': ['AATBC', 'AC104809.2', 'APOBEC3A', 'ARHGAP29', 'CD300E', 'CDA', 'CEACAM3', 
+                'CFP', 'EIF4E3', 'F5', 'FCN1', 'GBP5', 'GLT1D1', 'GPR174', 'LILRA1', 'LILRA5', 'LIN7A', 
+                'LINC01619', 'LINC02085', 'LIPN', 'MCTP2', 'MEFV', 'NEBL', 'NLRP12', 'P2RX1', 'PADI4', 
+                'PFKFB4', 'PLAC8', 'PLCB1', 'PRR16', 'PTGER2', 'SLC2A6', 'SPOCK1', 'TMTC1', 'VCAN', 'VCAN-AS1'],
+    'Myeloid Differentiation': ['LYN', 'TET2', 'JAK2', 'HIPK2'],
+    'Response To Cytokine': ['RIPOR2','GBP5','PID1','LRRK2','IRAK3','MNDA','LILRB2','JAK2'],
+    'Protein Phosphorylation': ['LYN','USP25','MAP3K1','PRKCB','LRRK2','PTEN','IRAK3','SSH2','HIPK2','PTPRC','STK17B','SIK3','FYN','JAK2'],
+    'Negative Regulation Of Immune Response': ['CCR2', 'SPINK5', 'LYN', 'CD300A', 'AMBP', 'MUL1', 'RC3H1', 'LILRB1', 'FOXP3', 'ATG12', 'MAPK14', 
+                                                            'COL3A1', 'FCGR2B', 'FER', 'TRAFD1', 'SMCR8', 'PDCD1', 'ALOX15', 'TNFAIP3', 'CGAS', 'DTX4', 'NLRC3', 
+                                                            'TREM2', 'AURKB', 'IFNL1', 'PPP6C', 'IFI16', 'IRAK3', 'AKT1', 'BANF1', 'HAVCR2', 'LYAR', 'CR1', 'RHBDF2', 
+                                                            'YES1', 'SYK', 'PARP1' ,  ],
+    'Resident': ['ABCA9-AS1', 'ACSM4', 'C4BPB', 'CD163', 'CD163L1', 'CD209', 'CLEC4G', 'COLEC12', 
+                'CR1', 'EDA', 'F13A1', 'FCER2', 'FGF13', 'FOLR2', 'GFRA2', 'IL2RA', 'ITSN1', 
+                'LGI2', 'LILRB5', 'LINC01645', 'LINC01839', 'LYPLAL1-AS1', 'LYVE1', 'MAMDC2', 
+                'ME1', 'MPPED2', 'MRC1', 'NAV2-AS4', 'NAV2-IT1', 'NEURL2', 'PDGFC', 'PLEKHG5', 
+                'PLTP', 'RGL1', 'SCN9A', 'SELENOP', 'SHE', 'SLC39A12', 'SLC40A1', 'STON2', 
+                'TBX1', 'TDRD10', 'THBS1', 'TMEM236', 'TRIM50'],
+    'Response to Cytokine': [
+        'CIITA', 'PID1', 'IL1R1', 'FLT3', 'AFF3', 
+        'JAK1', 'JAK2', 'STAT1', 'STAT3', 'SOCS3', 'IRF1'
+    ],
+    # 'ADCP_CRIPSRo_Up100':['CD47', 'GNE', 'CMAS', 'NANS', 'C1GALT1C1', 'QPCTL', 'SLC35A1',
+    #    'MS4A1', 'CAB39', 'UBE2D3', 'ARID1A', 'PDCD10', 'C1GALT1', 'PTEN',
+    #    'APMAP', 'RTN4IP1', 'AIFM1', 'FDX1', 'NDUFA1', 'GTPBP6', 'NDUFS8',
+    #    'SMARCC1', 'TACO1', 'CMC1', 'ATP5SL', 'SLC39A9', 'SS18', 'CHMP1A',
+    #    'GRSF1', 'C17ORF89', 'NDUFAF7', 'PDE12', 'UQCC1', 'NDUFAF5',
+    #    'HIGD2A', 'NDUFB9', 'MECR', 'WDR1', 'COX18', 'RHOH', 'HMGB1',
+    #    'SLC25A1', 'NDUFS6', 'FOXO1', 'TMEM261', 'HMGB2', 'CS', 'POU2F2',
+    #    'ADAM10', 'NDUFB6', 'MTIF3', 'MTO1', 'UBR4', 'NDUFB4', 'LIPT2',
+    #    'HMHA1', 'YBEY', 'ALAD', 'NXT1', 'OTUB1', 'NDUFV1', 'GTPBP3',
+    #    'NUBPL', 'NDUFS2', 'NDUFB11', 'LDB1', 'SAMD4B', 'C1ORF233',
+    #    'ZBTB7A', 'TIMMDC1', 'STK4', 'AP000721.4', 'STARD7', 'NFIA',
+    #    'UBE2K', 'VPS37A', 'NDUFA9', 'NDUFA8', 'ELOVL1', 'COX5B', 'PTPRC',
+    #    'NDUFAF3', 'ACTB', 'HMBS', 'NDUFC1', 'ARID1B', 'SPI1', 'TMEM38B',
+    #    'NDUFS7', 'PRKCD', 'STUB1', 'P2RY8', 'NDUFS1', 'SMS', 'MRPL24',
+    #    'LIPT1', 'SCYL1', 'CLCC1', 'ARHGEF1', 'SMARCD2'],
+    # 'ADCP_CRIPSRo_Down100':['SPERT', 'PCGF3', 'AC007401.2', 'RP11-195F19.5', 'TRIM25',
+    #    'MAGEA3', 'IGHV1OR21-1', 'PITX1', 'KIR3DL3', 'BPHL', 'PRKAB1',
+    #    'PSPC1', 'LILRA1', 'HIGD1C', 'KRT6B', 'SLC16A13', 'GDF15',
+    #    'AP001421.1', 'GALNT12', 'OXNAD1', 'FAM111B', 'SPATA8', 'GCLM',
+    #    'LY6G6F', 'RPL26L1', 'FMR1NB', 'TUBAL3', 'ARID4B', 'DNAAF3',
+    #    'TMEM241', 'CCL4L1', 'HSDL2', 'OR51J1', 'DERA', 'CLGN', 'GLB1L3',
+    #    'LRRC57', 'SGCZ', 'ZNF737', 'SVOPL', 'GAN', 'MPST', 'PIK3AP1',
+    #    'C14ORF64', 'SIPA1L2', 'FXYD4', 'CEACAM21', 'CASC5', 'KRTAP10-1',
+    #    'RPL41', 'AL121963.1', 'CDSN', 'ENTPD4', 'PHF3', 'GPR15',
+    #    'SERINC1', 'CDRT4', 'TMEM132C', 'HBCBP', 'C5ORF17', 'ACAT1',
+    #    'PPP1R37', 'ESX1', 'ISYNA1', 'KRT84', 'C1QL4', 'TACR3', 'C1ORF112',
+    #    'TVP23C', 'C10ORF32', 'TSPY6P', 'PDZD9', 'OR51E1', 'SLC22A7',
+    #    'AC109583.1', 'ST6GALNAC5', 'IGHV3-74', 'OR14I1', 'BICD1', 'ABCD4',
+    #    'ITCH', 'C11ORF1', 'ARSB', 'SIX4', 'PTGES', 'AC040160.1',
+    #    'C9ORF171', 'SCML4', 'ESPNL', 'WDR41', 'ZFP42', 'MGAT4A', 'ALAS2',
+    #    'NIT1', 'CNKSR2', 'IL7R', 'RP5-1021I20.4', 'AHNAK', 'ECEL1',
+    #    'ZNF77'],
+    # 'ADCP_CRIPSRa_Up100':["GFI1", "SMAGP", "MUC21", "ST6GALNAC1", "ITGB2", "OSR2", "MUC1", "CD1C",
+    #     "GAL3ST4", "FUT6", "ST3GAL1", "MS4A1", "LRRC15", "TLE3", "PRDM1", "SPN",
+    #     "MUC12", "PTPRC", "HDAC9", "NFIA", "ELOVL6", "GFI1B", "POU2F2", "IRX5",
+    #     "MS4A7", "MS4A14", "C5AR1", "CD44", "IQGAP2", "CBFA2T3", "JMJD1C", "CD38",
+    #     "ALCAM", "PPAP2B", "FCGR2B", "PODXL", "HMHA1", "HIC1", "BCL9L", "MAML2",
+    #     "SPIB", "CLIC4", "SLA", "PIK3AP1", "FAR1", "MAML1", "POU2AF1", "ZEB2",
+    #     "SASH3", "SLC9A3R1", "DOCK11", "HES7", "BCOR", "PTPN6", "TSPAN15", "GAL3ST2",
+    #     "RAC2", "FOXO4", "AXL", "LIMK2", "SLC39A13", "CADM1", "CAPN6", "MAML3",
+    #     "CLDN18", "ST3GAL2", "VSIG8", "IKZF3", "ELOVL1", "CEBPE", "SYK", "FMNL3",
+    #     "MAP3K3", "ICAM1", "EZR", "FCGR1B", "LCK", "FMNL1", "GPR114", "GRHL1",
+    #     "PNMA5", "ZC3HAV1", "VCAM1", "ZNF746", "BTK", "FAM81A", "SLA2", "ZBTB7A",
+    #     "ZNF683", "CD79B", "CIITA", "PPP3CA", "ZBTB7B", "BCL6", "MSN", "IER5L",
+    #     "TCEB1", "MAK", "MAP3K10", "ZNF311", "MOB3A", "FCRL3", "ZDBF2", "LCA5L",
+    #     "CIT", "GCNT1", "TMEM119", "SIX4", "SUV420H1", "GYPA", "ISL2", "ZFX",
+    #     "TP73", "SYT1", "MEX3B", "RNF122", "LPIN2", "MED13", "DBR1", "MUC22",
+    #     "SIAH2", "PWWP2B", "POGLUT1", "CELF1", "DBN1", "TTC39C", "MYB", "NRG4",
+    #     "FAM49B", "PLA2G6", "MSS51", "CRIP2", "SORD", "DGKB", "VSIG1", "FRMD3",
+    #     "CD47", "C15ORF59", "S100A11", "STK10", "CSNK1G3", "PRAP1", "ADAD2", "MS4A8",
+    #     "TRIM13", "GDPGP1", "LYL1", "LAG3", "NOMO2", "NOMO3", "PNMAL1", "DOCK10",
+    #     "KCNS2", "NOMO1", "ZMYND8", "KLHL36", "VPS39", "SLC30A7", "KCNJ6", "SPTBN1",
+    #     "ZNF680", "UNC13D", "QSER1", "CHAF1A", "YY1", "IGLL1", "CRYGD", "PRSS36",
+    #     "TIMM23B", "RORC", "MYH10", "PIGR", "NANOS3", "LHX9", "LAPTM5", "CIB1",
+    #     "LPPR1", "TIMM23", "CD4", "TMEM101", "DEFB1", "KRT23", "FAM129B", "MAG",
+    #     "C20ORF196", "ARRDC3", "RAB44", "JARID2", "KRT6A", "UBE2Q2", "WNT9A",],
+    # 'ADCP_CRIPSRa_Down100':["DDACH1", "CLCA1", "TLL1", "FLNA", "TMEM45B", "SGPP2", "SUGCT",
+    #     "SLC38A2", "PLEKHG4B", "LIF", "TRAPPC11", "NELL2", "PCDHB3",
+    #     "PCDH1", "GOLGA4", "CLCNKA", "MCHR2", "TMEM100", "TNFAIP2",
+    #     "BNHIP", "PGRMC2", "MEPE", "MAGEH1", "DRD5", "SLC22A17", "GREAM1",
+    #     "OREG", "PRELID1", "SPRN", "DRD4", "KCNJ1", "HBB", "TRUB1",
+    #     "CDK17", "CLCNK", "MROH5", "CTNNB1", "TCEA1", "MPND", "RBM42",
+    #     "SLC5A1", "THOC6", "FIS1", "ARHGAP39", "ARHGEF12", "OR2Z1",
+    #     "CLRN1", "ITLN2", "PCDHB2", "MUC15", "TMEM149", "MAML1", "ARHGEF12",
+    #     "C2CD4A", "CPED1", "AVE1", "KCNT2", "DGCR2", "SGPL1", "ABRB1",
+    #     "FAM211A", "CHIC2", "C3ORF49", "TMEM14", "CRML", "OR2T1",
+    #     "CPED1", "ADCC1B", "OR2W1", "UBALD1", "KCNJ12-2", "AFMIRAID",
+    #     "CLCNKA", "DRD1", "NELL2", "MROH5", "FAM215B", "C3ORF49",
+    #     "C3ORF49-SC", "AL024168.1", "CLCNKA", "LINC00306", "RP11-102895.1",
+    #     "C16ORF92", "KCNJ1", "CLCNKA", "OR2B1A", "LILRB2", "SPRN",
+    #     "CCDC33", "RBM42", "TAS2R14", "MEPE", "TMEM74", "NEFL", "RABGGTA",
+    #     "NELL2", "NIEZ1"]
+}
+
+# gene_modules = {
+#     'Macrophage Derived Foam Cell Differentiation': ['CSF1', 'ITGB3', 'NR1H3', 'PPARG', 'CD36', 'LIPA'],
+#     # 'Lipid': ['ABCA1', 'ABCG1', 'CD36', 'FABP4', 'FABP5', 'PLIN2', 'OLR1'],
+#     'Inflammatory': ['IL1B', 'NLRP3', 'G0S2', 'SOD2', 'CEBPB', 'NFKBIA', 'INHBA', 'TNF', 'TREM1', 'CCL2', 'CCL20', 'CCL7', 'CXCL1', 'CXCL2', 'CXCL3', 'CXCL8'],
+#     'IL-17 signaling pathway': ['FOS', 'FOSB', 'CXCL2', 'CXCL3', 'IL1B', 'CXCL8', 'JUN', 'NFKBIA', 'PTGS2', 'CCL20', 'TNFAIP3'],
+#     'Apoptosis': ['IER3', 'EGR1', 'BTG1', 'BCL2A1', 'PTGER2', 'PTGS2', 'MCL1', 'CDKN1A', 'G0S2'],
+#     'Apoptosis 2': ['GALM', 'ENO1', 'FBP1', 'ALDOA', 'GAPDH', 'PGAM1', 'PGK1', 'PKM', 'TPI1'],
+#     'Oxidative phosphorylation': ['TCIRG1', 'UQCR11', 'COX5B', 'COX6A1', 'COX6C', 'COX8A', 'UQCRQ', 'NDUFAB1', 'NDUFB2', 'NDUFB7', 'NDUFS5', 'ATP5F1B', 
+#                                 'ATP5MC1', 'ATP5MC3', 'ATP5ME', 'ATP6V0C', 'ATP6V0B', 'ATP6V1F', 'ATP6V1G1', 'ATP5MF'],
+#     'Glycolysis / Gluconeogenesis': ['GALM', 'ENO1', 'FBP1', 'ALDOA', 'GAPDH', 'PGAM1', 'PGK1', 'PKM', 'TPI1'],
+#     'NF-kappa B signaling pathway': ['TNFSF13B', 'MALT1', 'GADD45A', 'BIRC3', 'NFKB1', 'RELB', 'CCL19', 'TRAF1', 'UBE2I', 'CFLAR', 'CD40'],
+#     'PPAR signaling pathway': ['PLIN2', 'FABP4', 'FABP5', 'ACSL3', 'GK', 'OLR1', 'ANGPTL4', 'SCD', 'CD36'],
+#     'Phagosome': ['TCIRG1', 'TUBA1B', 'CTSL', 'SEC61G', 'RAB7B', 'ITGB1', 'ITGB2', 'ITGB5', 'LAMP1', 'MSR1', 'ATP6V0C', 'ATP6V0B',
+#                  'TFRC', 'CALR', 'TUBB6', 'TUBA1C', 'MARCO', 'ATP6V1F', 'CD36', 'ATP6V1G1'],
+#     'antigen processing and presentation': ['AP1B1','CAPZA2','CAPZB','CD68','CD74','CLTA','CLTC','CTSD','CTSH',
+#             'FCGR1A','FCGR2B','HLA-DRB5','LGMN','PSAP','VAMP8','RAB32','TREM2'],
+#     'Ferroptosis': ['FTH1','FTL','GPX4','SLC40A1','HMOX1'],
+#     'Detoxification': ['ALOX5AP','APOE','GPX3','MGST2','MGST3','PRDX1','AKR1A1','SESN1','PRXL2A'],
+#     'Lipid Storage': ['ITGB3', 'NR1H3', 'PPARG', 'TTC39B'],
+#     'Lipid peroxidation': ['ACSL4', 'LPCAT3', 'FADS1', 'ELOVL5', 'ALOX15', 'PEBP1', 'POR', 'NOX4'],
+#     'Antioxidant defense / lipid peroxide removal': ['GPX4', 'SLC7A11', 'SLC3A2', 'GSH', 'FSP1', 'GCH1'],
+#     'Iron metabolism': ['TFRC', 'FTH1', 'FTL', 'FPN1', 'NCOA4', 'HMOX1'],
+#     'Lysosomal lipid handling': ['LIPA', 'NPC1', 'CTSD', 'CTSK'],
+#     'ECM remodeling': ['MMP9', 'MMP14', 'TIMP3', 'COL6A1'], # ITGBL1, PAPLN, GPC4, SEMA3C
+#     'Cell Adhesion & Migration': ['ITGA3', 'PALLD', 'MYOF', 'MYO1E', 'ASAP1', 'DOCK3'],
+#     'Membrane remodeling': ['DCSTAMP', 'MYOF', 'ANO5', 'TM4SF19', 'TSPAN19'],
+#     'Cholesterol Efflux': ['ABCA7', 'ABCA5', 'APOA2', 'ABCA8', 'APOA5', 'APOA4', 'NPC1', 'STX12', 'APOC1', 'NPC2',  'APOC3', 'APOC2', 'SOAT1', 'ABCG1', 'APOE', 'SCARB1' ],
+#     'Endocytosis': ['DNM3', 'MYO1E', 'CTTN', 'MYO6', 'MICALL1', 'ENTHD1', 'APOE', 'CD36', 'LRP12', 'ATP9A', 'CORO1C'],
+#     'Response to Cytokine': ['CIITA', 'PID1', 'IL1R1', 'FLT3', 'AFF3'],
+#     'Phagocytosis': ['YES1', 'LYN', 'SRC', 'LIMK1', 'PRKCD', 'SYK', 'PRKCE', 'PLA2G6', 'PLD2', 'VAV1', 'HCK', 'VAV2', 'PTK2', 'VAV3', 'FGR', 'FCGR2B', 'PAK1', 'FYN', 'MYO1G'],
+#     'Inflammatory Response': ['CXCL8', 'SLC11A1', 'C5AR2', 'WNT5A', 'C5AR1', 'NLRC4', 'CXCL3', 'CXCL2', 
+#                               'THBS1', 'NFKB1', 'IL6', 'OLR1', 'CD44'],
+#     'Cytokine Production': ['APP', 'SLC11A1', 'WNT5A', 'LAPTM5', 'EIF2AK3', 'HIF1A', 'MALT1', 'EREG'], 
+#     'Inflammatory chemotaxis': ['KLRK1', 'CCL7', 'XCL1', 'CCL5', 'CCL4', 'CCL3'],
+#     'Immune Response': ['APOBEC3A', 'MEFV', 'NLRP12', 'FCN1', 'GBP5', 'CD300E', 'LILRA1', 'LILRA5', 'PTGER2'],
+#     'Migration': ['VCAN', 'VCAN-AS1', 'CEACAM3', 'S100A4', 'ADGRE3', 'SPOCK1'],
+#     'Angiogenesis': ['BTG1','CXCL8','FLT1','CEMIP2', 'WNT5A', 'HIF1A', 'THBS1', 'HIPK2', 'VEGFA', 
+#                      'IL6', 'RGCC', 'AGO2', 'HMOX1', 'CTNNB1', 'GLUL'],
+#     'Regulation of SMC proliferation': ['IL6', 'NR4A3', 'HMOX1', 'CTNNB1', 'IL6R', 'THBS1', 'EREG',
+#                             'IL6', 'RGCC', 'CLEC7A', 'PDE4B', 'HMOX1', 'CD226', 'IL6R'],
+
+#     'Proliferating': ['MKI67', 'TOP2A', 'TUBB', 'SMC2'], 
+#     'MHC Class I': ['PDIA3', 'ACE', 'SAR1B', 'ERAP1', 'ERAP2', 'HFE', 'IDE', 'TAP2', 'HLA-A', 'TAP1', 'TAPBPL', 'IFI30', 'TAPBP', 'MFSD6', 'CLEC4A', 'B2M', 'CALR', 'FCER1G'],
+#     'MHC Class II': ['HLA-DRB5', 'FCER1A', 'HLA-DQA1', 'HLA-DQB2', 'GAPT'],
+#     'Membrane Lipid Catabolic Process': ['FUCA1', 'SGPL1', 'SMPD2', 'MGST2', 'NAGA', 'ENPP2', 'PPT1', 'SMPDL3B'],
+#     # 'T-helper 1 Cell Cytokine': ['IL1R1', 'IL18R1'],
+#     # 'T Cell Activation': ['JAML', 'IRF4', 'RHOH', 'CD1C'],
+# }
 
 
 def enrich_module(adata, gene_sets):
@@ -329,6 +598,37 @@ def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
 
     return go_results
 
+def plot_go_enrich(go_results, add='', out_dir=None, cutoff=0.05, top_term=10, figsize=None, **kwargs):
+    if add:
+        go_results['cell_type'] = add + go_results['cell_type'].astype(str)
+    if check_is_numeric(go_results, 'cell_type'):
+        go_results['cell_type'] = 'cluster_'+go_results['cell_type'].astype(str)
+
+    n = go_results['cell_type'].nunique()
+    if figsize is None:
+        figsize=(0.7*n, 2*n)
+    ax = dotplot(go_results,
+            column="Adjusted P-value",
+            x='cell_type', # set x axis, so you could do a multi-sample/library comparsion
+            top_term=top_term,
+            figsize=figsize,
+            title = f"GO_BP",  
+            xticklabels_rot=45, # rotate xtick labels
+            show_ring=False, # set to False to revmove outer ring
+            size=10,
+            marker='o',
+            cutoff=cutoff,
+            cmap='viridis',
+            **kwargs
+            )
+    if out_dir is not None:
+        os.makedirs(out_dir, exist_ok=True)
+        go_results = go_results.sort_values('Adjusted P-value', ascending=True).groupby('cell_type').head(20)
+        go_results[['Gene_set','Term','Overlap', 'Adjusted P-value', 'Genes', 'cell_type']].to_csv(os.path.join(out_dir, f'go_results.csv'))
+        plt.savefig(os.path.join(out_dir, f'go_results.pdf'))
+    plt.show()
+
+    return go_results
 
 
 def get_markers(
@@ -386,6 +686,9 @@ def flatten_dict(markers):
     flatten_markers = np.unique([item for sublist in markers.values() for item in sublist])
     return flatten_markers
 
+def flatten_list(lists):
+    return [item for sublist in lists for item in sublist]
+
 
 def filter_marker_dict(markers, var_names):
     marker_dict = {}
@@ -429,14 +732,19 @@ def rename_marker_dict(markers, rename_dict):
     return marker_dict
 
 
-def cluster_program(adata_avg, n_clusters=None):
+def cluster_program(adata_avg, n_clusters=None, method='kmeans'):
     if n_clusters is None:
         n_clusters = adata_avg.shape[0] #+ 2
 
     from sklearn.cluster import KMeans
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-    adata_avg.var['cluster'] = np.array(kmeans.fit_predict(adata_avg.X.T)).astype(str)
-    # print(adata_avg_.var)
+    from scipy.cluster.hierarchy import dendrogram, linkage
+    if method == 'kmeans':
+        kmeans = KMeans(n_clusters=n_clusters, random_state=0)
+        adata_avg.var['cluster'] = np.array(kmeans.fit_predict(adata_avg.X.T)).astype(str)
+    elif method == 'hclust':
+        linkage_matrix = linkage(adata_avg.X.T, method='ward')
+        cluster_labels = linkage_matrix[:, 2]  # Use the third column for cluster labels
+        adata_avg.var['cluster'] = cluster_labels.astype(str)
 
     gene_cluster_dict = adata_avg.var.groupby('cluster').groups
     gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
@@ -738,20 +1046,16 @@ def aucell_scores(expr: pd.DataFrame, gene_sets: dict, top=0.05):
 
 import scanpy as sc
 
-# Suppose adata is your single-cell dataset (normalized log1p CPM/TPM)
-# expr = pd.DataFrame(
-#     adata.X.toarray() if not isinstance(adata.X, np.ndarray) else adata.X,
-#     index=adata.obs_names,
-#     columns=adata.var_names
-# )
+def get_rank_dict(adata, cell_type='cell_type', n_top=100, to_dict=True):
+    if 'rank_genes_groups' not in adata.uns:
+        sc.tl.rank_genes_groups(adata, cell_type)
+    df = pd.DataFrame(adata.uns['rank_genes_groups']['names']).head(n_top)
+    if to_dict:
+        return df.to_dict(orient='list')
+    return df
 
-# gene_sets = {
-#     "anti_tumor": ["CXCL9", "CXCL10", "CD40", "STAT1"],
-#     "pro_tumor": ["VEGFA", "MMP9", "ARG1"],
-# }
-
-# scores = aucell_scores(expr, gene_sets, top=0.05)
-
-# # Add back to AnnData
-# for prog in scores.columns:
-#     adata.obs[f"{prog}_AUCell"] = scores[prog]
+def reorder(adata, groupby='cell_type', order=None):
+    # if order is None:
+    #     order = adata.obs[groupby].value_counts().index.tolist()
+    adata.obs[groupby] = adata.obs[groupby].astype(str).astype('category').cat.reorder_categories(order)
+    return adata
