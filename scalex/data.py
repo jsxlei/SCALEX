@@ -198,7 +198,10 @@ def concat_data(
         # concat.write(save, compression='gzip')
     # return concat
 
-def aggregate_data(rna, groupby='cell_type', processed=False, scale=False):
+def aggregate_data(rna, groupby='cell_type', processed=False, target_sum=1e4, scale=False):
+    if scale is True:
+        scale = 'scale'
+
     if processed:
         if rna.raw is not None:
             rna = rna.raw.to_adata()
@@ -208,11 +211,20 @@ def aggregate_data(rna, groupby='cell_type', processed=False, scale=False):
         rna_agg = sc.get.aggregate(rna, by=groupby, func='sum')
         rna_agg.X = rna_agg.layers['sum']
 
-        sc.pp.normalize_total(rna_agg, target_sum=1e4)
+        sc.pp.normalize_total(rna_agg, target_sum=target_sum)
         sc.pp.log1p(rna_agg)
 
-    if scale:
+    if scale == 'scale':
         sc.pp.scale(rna_agg, zero_center=True)
+    elif scale == 'quantile':
+        X = rna_agg.X.toarray() if issparse(rna_agg.X) else np.array(rna_agg.X)
+        rank_idx = np.argsort(X, axis=1)
+        mean_per_rank = np.sort(X, axis=1).mean(axis=0)
+        X_norm = np.empty_like(X)
+        for i in range(X.shape[0]):
+            X_norm[i, rank_idx[i]] = mean_per_rank
+        rna_agg.X = scipy.sparse.csr_matrix(X_norm) if issparse(rna_agg.X) else X_norm
+
     return rna_agg
     
 def preprocessing_rna(
@@ -605,19 +617,57 @@ def reindex(adata, genes, chunk_size=CHUNK_SIZE):
     return adata
 
 
-def convert_mouse_to_human(adata):
-    """
-    Convert mouse gene names to human gene names
-    """
-    mapping_file = os.path.join(GENOME_PATH, 'mm10', 'mouse_human_gene_mapping.txt')
-    mappings = pd.read_csv(mapping_file, sep='\t')
+# def convert_mouse_to_human(adata):
+#     """
+#     Convert mouse gene names to human gene names
+#     """
+#     mapping_file = os.path.join(GENOME_PATH, 'mm10', 'mouse_human_gene_mapping.txt')
+#     mappings = pd.read_csv(mapping_file, sep='\t')
 
-    map_dict = mappings.set_index('mouse')['human'].to_dict()
-    adata2 = adata[:, pd.notna(adata.var.index.map(map_dict))].copy()
-    adata2.var['human'] = adata2.var_names.map(map_dict)
-    adata2.var['mouse'] = adata2.var_names
-    adata2.var_names = adata2.var['human'].values
-    adata2.var_names = adata2.var_names.astype(str)
+#     map_dict = mappings.set_index('mouse')['human'].to_dict()
+#     adata2 = adata[:, pd.notna(adata.var.index.map(map_dict))].copy()
+#     adata2.var['human'] = adata2.var_names.map(map_dict)
+#     adata2.var['mouse'] = adata2.var_names
+#     adata2.var_names = adata2.var['human'].values
+#     adata2.var_names = adata2.var_names.astype(str)
+#     adata2.var_names_make_unique()
+#     return adata2
+
+def convert_mouse_to_human(adata, mapping_file=None, cache_file=None):
+    """
+    Convert mouse gene symbols (adata.var_names) -> human gene symbols using BioMart.
+    Optionally cache the mapping to a TSV file.
+    """
+    # 1) load cached mapping if available
+    if mapping_file and os.path.exists(mapping_file):
+        df = pd.read_csv(mapping_file, sep="\t")
+    elif cache_file and os.path.exists(cache_file):
+        df = pd.read_csv(cache_file, sep="\t")
+    else:
+        # 2) query BioMart
+        from gseapy import Biomart
+        bm = Biomart()
+        df = bm.query(
+            dataset="mmusculus_gene_ensembl",
+            attributes=["external_gene_name", "hsapiens_homolog_associated_gene_name"],
+        ).rename(columns={
+            "external_gene_name": "mouse",
+            "hsapiens_homolog_associated_gene_name": "human",
+        })
+
+        df = df.dropna().drop_duplicates("mouse")
+        if cache_file:
+            df.to_csv(cache_file, sep="\t", index=False)
+
+    # 3) make dict and apply
+    map_dict = df.set_index("mouse")["human"].to_dict()
+
+    keep = adata.var_names.to_series().map(map_dict).notna().values
+    adata2 = adata[:, keep].copy()
+
+    adata2.var["mouse"] = adata2.var_names
+    adata2.var["human"] = adata2.var_names.to_series().map(map_dict).values
+    adata2.var_names = adata2.var["human"].astype(str).values
     adata2.var_names_make_unique()
     return adata2
 

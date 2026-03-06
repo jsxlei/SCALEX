@@ -28,7 +28,7 @@ def embedding(
         legend_fontweight='bold', 
         sep='_', 
         basis='X_umap',
-        size=30,
+        size=20,
         wspace=0.5,
         n_cols=4,
         show=True,
@@ -74,6 +74,7 @@ def embedding(
     for j, ax in enumerate(axes.flatten()):
         if j < n_plots:
             b = _groups[j]
+            # order = adata.obs[color].astype('category').cat.categories.tolist()
             adata.obs['tmp'] = adata.obs[color].astype(str)
             adata.obs.loc[adata.obs[groupby]!=b, 'tmp'] = ''
             if cond2 is not None:
@@ -92,6 +93,8 @@ def embedding(
 
             title = b if cond2 is None else v2+sep+b
 
+            # order = [c for c in order if c in adata.obs['tmp'].cat.categories] + [c for c in adata.obs['tmp'].cat.categories if c not in order]
+            # adata.obs['tmp'] = adata.obs['tmp'].cat.reorder_categories(order)
             ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, ax=ax, title=title, palette=palette, size=size, 
                     legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=wspace, show=False, **kwargs)
             # ax.set_aspect('equal')
@@ -309,8 +312,15 @@ def plot_meta2(
         corr = corr_
         xticklabels, yticklabels = categories, categories
 #         xticklabels, yticklabels = [], []
+
+    cbar_kws = {
+            'shrink': 0.2,  # 20% of the height
+            'aspect': 5,     # Aspect ratio (height/width)
+            'anchor': (0, 0.2),  # Anchor to top
+    }
+
     grid = sns.heatmap(corr, xticklabels=xticklabels, yticklabels=yticklabels, annot=annot,
-                cmap=cmap, square=True, cbar=cbar, vmin=vmin, vmax=vmax)
+                cmap=cmap, square=True, cbar=cbar, vmin=vmin, vmax=vmax, cbar_kws=cbar_kws)
 
     if color_map is not None:
         [ tick.set_color(color_map[tick.get_text()]) for tick in grid.get_xticklabels() ]

@@ -318,6 +318,179 @@ def plot_meta2(
         plt.show()
         
         
+import seaborn as sns
+from scipy.cluster.hierarchy import linkage as hclust, leaves_list
+from scipy.spatial.distance import pdist
+from matplotlib.colors import to_rgba
+from matplotlib.patches import Patch
+import matplotlib as mpl
+
+def plot_corr_clustermap(
+    adata,
+    use_rep='latent',
+    color='celltype',
+    batch='batch',
+    color_map=None,
+    figsize=(12, 12),
+    cmap='RdBu_r',
+    batches=None,
+    save=None,
+    fontsize=10,
+    vmin=-1,
+    vmax=1,
+    compare=False,
+):
+    """
+    Plot individual cell Pearson correlation heatmap with hierarchical clustering.
+
+    compare=False : single N×N heatmap, all cells clustered together.
+    compare=True  : cross-batch N1×N2 heatmap; rows = batches[0], cols = batches[1].
+                    Both axes sorted by shared cell-type order + within-type clustering
+                    → same-type blocks on the diagonal.
+                    square=True makes each cell square, so the plot is N1/N2 aspect ratio.
+    """
+    mpl.rcParams['axes.grid'] = False
+
+    if batches is None:
+        batches = list(adata.obs[batch].astype('category').cat.categories)
+
+    # ── representation ──────────────────────────────────────────────────────────
+    if use_rep in adata.obsm:
+        X_all = np.array(adata.obsm[use_rep])
+    elif use_rep in adata.layers:
+        X_all = adata.layers[use_rep]
+        if hasattr(X_all, 'toarray'):
+            X_all = X_all.toarray()
+        X_all = np.array(X_all)
+    else:
+        X_all = adata.X
+        if hasattr(X_all, 'toarray'):
+            X_all = X_all.toarray()
+        X_all = np.array(X_all)
+
+    # ── palettes ────────────────────────────────────────────────────────────────
+    if color_map is None:
+        cats = adata.obs[color].astype('category').cat.categories
+        color_map = {k: mpl.colors.rgb2hex(c)
+                     for k, c in zip(cats, sns.color_palette('tab10', len(cats)))}
+
+    batch_palette = dict(zip(
+        batches, ['#4878CF', '#D65F5F', '#5cb85c', '#f0ad4e'][:len(batches)]
+    ))
+
+    # ── shared helpers ───────────────────────────────────────────────────────────
+    def _cluster_order(X):
+        Z = hclust(pdist(X, metric='correlation'), method='average')
+        return leaves_list(Z)
+
+    def _rgba(series, palette):
+        return np.array([to_rgba(palette.get(str(v), '#888888')) for v in series])
+
+    def _add_left_strip(fig, pos, rgba, label, x_offset, bar_w, fontsize):
+        ax_s = fig.add_axes([pos.x0 - x_offset, pos.y0, bar_w, pos.height])
+        ax_s.imshow(rgba[:, np.newaxis, :], aspect='auto', interpolation='none', origin='upper')
+        ax_s.set_xticks([]); ax_s.set_yticks([])
+        ax_s.set_title(label, fontsize=fontsize, pad=4)
+
+    def _add_bottom_strip(fig, pos, rgba, label, bar_w, gap, fontsize):
+        ax_s = fig.add_axes([pos.x0, pos.y0 - bar_w - gap, pos.width, bar_w])
+        ax_s.imshow(rgba[np.newaxis, :, :], aspect='auto', interpolation='none', origin='upper')
+        ax_s.set_xticks([]); ax_s.set_yticks([])
+        ax_s.set_xlabel(label, fontsize=fontsize, labelpad=4)
+
+    # ── single heatmap ───────────────────────────────────────────────────────────
+    if not compare:
+        corr     = np.corrcoef(X_all)
+        order    = _cluster_order(X_all)
+        corr_ord = corr[np.ix_(order, order)]
+        obs_ord  = adata.obs.iloc[order]
+
+        fig, ax = plt.subplots(figsize=figsize)
+        sns.heatmap(corr_ord, ax=ax, cmap=cmap, center=0, vmin=vmin, vmax=vmax,
+                    xticklabels=False, yticklabels=False, square=True,
+                    cbar_kws={'shrink': 0.4, 'label': 'Pearson r'})
+        ax.set_title('Cell–cell Correlation (Hierarchically Clustered)', fontsize=fontsize + 2)
+
+        fig.canvas.draw()
+        pos   = ax.get_position()
+        bar_w = 0.015
+        gap   = 0.004
+
+        _add_left_strip(fig, pos, _rgba(obs_ord[batch], batch_palette),
+                        batch, bar_w + gap,     bar_w, fontsize)
+        _add_left_strip(fig, pos, _rgba(obs_ord[color], color_map),
+                        color, bar_w*2 + gap*2, bar_w, fontsize)
+
+        ct_handles  = [Patch(color=c, label=k) for k, c in color_map.items()]
+        bat_handles = [Patch(color=c, label=k) for k, c in batch_palette.items()]
+        ax.legend(handles=ct_handles + [Patch(visible=False, label='')] + bat_handles,
+                  bbox_to_anchor=(1.15, 1), loc='upper left', frameon=False, fontsize=fontsize)
+
+    # ── cross-batch comparison ───────────────────────────────────────────────────
+    else:
+        b1, b2 = batches[0], batches[1]
+        idx1   = np.where(adata.obs[batch] == b1)[0]
+        idx2   = np.where(adata.obs[batch] == b2)[0]
+        X1, X2 = X_all[idx1], X_all[idx2]
+        obs1   = adata.obs.iloc[idx1]
+        obs2   = adata.obs.iloc[idx2]
+
+        # shared cell-type ordering → same types land on the diagonal
+        cat_order = adata.obs[color].astype('category').cat.categories
+
+        def _diagonal_order(obs_sub, X_sub):
+            """Sort by shared category order; cluster within each type."""
+            groups = []
+            for ct in cat_order:
+                local = np.where(obs_sub[color].values == ct)[0]
+                if len(local) == 0:
+                    continue
+                if len(local) > 2:
+                    local = local[_cluster_order(X_sub[local])]
+                groups.append(local)
+            return np.concatenate(groups) if groups else np.arange(len(obs_sub))
+
+        # Pearson cross-correlation (N1 × N2)
+        def _pearson_cross(A, B):
+            A = A - A.mean(axis=1, keepdims=True)
+            B = B - B.mean(axis=1, keepdims=True)
+            A_n = A / (np.linalg.norm(A, axis=1, keepdims=True) + 1e-10)
+            B_n = B / (np.linalg.norm(B, axis=1, keepdims=True) + 1e-10)
+            return A_n @ B_n.T
+
+        order1   = _diagonal_order(obs1, X1)
+        order2   = _diagonal_order(obs2, X2)
+        corr_ord = _pearson_cross(X1, X2)[np.ix_(order1, order2)]
+        obs1_ord = obs1.iloc[order1]
+        obs2_ord = obs2.iloc[order2]
+
+        fig, ax = plt.subplots(figsize=figsize)
+        # square=True makes each cell square: N1==N2 → square plot, N1≠N2 → N1/N2 aspect ratio
+        sns.heatmap(corr_ord, ax=ax, cmap=cmap, center=0, vmin=vmin, vmax=vmax,
+                    xticklabels=False, yticklabels=False, square=True,
+                    cbar_kws={'shrink': 0.4, 'label': 'Pearson r'})
+        ax.set_ylabel(f'{b1} cells', fontsize=fontsize)
+        ax.set_xlabel(f'{b2} cells', fontsize=fontsize)
+        ax.set_title(f'Cell Correlation: {b1} (rows) vs {b2} (cols)', fontsize=fontsize + 2)
+
+        fig.canvas.draw()
+        pos   = ax.get_position()
+        bar_w = 0.015
+        gap   = 0.004
+
+        _add_left_strip(fig, pos, _rgba(obs1_ord[color], color_map),
+                        f'{color} ({b1})', bar_w + gap, bar_w, fontsize)
+        _add_bottom_strip(fig, pos, _rgba(obs2_ord[color], color_map),
+                          f'{color} ({b2})', bar_w, gap, fontsize)
+
+        ct_handles = [Patch(color=c, label=k) for k, c in color_map.items()]
+        ax.legend(handles=ct_handles, bbox_to_anchor=(1.15, 1),
+                  loc='upper left', frameon=False, fontsize=fontsize)
+
+    if save:
+        plt.savefig(save, bbox_inches='tight')
+    else:
+        plt.show()
         
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, f1_score

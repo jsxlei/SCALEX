@@ -118,19 +118,20 @@ selected_GO_terms = [
 
 gene_modules = {
     # --- Foam Cell & Lipid Metabolism ---
-    'Foam_SPP1+': ['ADCY3', 'ANXA2', 'ARHGAP10', 'ATP6V0D2', 'C4orf45', 'CD109', 'CELSR1', 'CSF1', 'CSTB', 'CT69', 'DPP4', 
-                  'FABP5', 'FNIP2', 'HRK', 'ITGAX', 'ITGB3', 'KCP', 'KIAA0319', 'LGALS3', 'LINC01010', 'LINC02099', 'MGLL', 
-                  'MIR155HG', 'MYO1E', 'NUPR1', 'PRKCH', 'RAI14', 'RALA', 'RCAN3', 'SCD', 'SH3D21', 'SHC3', 'SLC22A15', 'LPL', 
-                  'SLC26A11', 'SLC43A3', 'SLC5A4-AS1', 'SPP1', 'TM4SF19', 'TM4SF19-AS1', 'WHRN', 'ZBTB7C', 'ZFYVE28', 'ZMIZ1-AS1'],
-    'Foam_SPP1-': ['ACP5', 'ADTRP', 'AFAP1L1', 'ALDH1A1', 'ALOX15B', 'ANKRD29', 'BEAN1', 'CCL18', 'CD22', 'CHIT1', 
-                   'CHRNA1', 'CPEB1', 'CPM', 'CYP27A1', 'DNAJC5B', 'FCHO2', 'GALNTL6', 'HS3ST2', 'HS3ST3A1', 'HTRA4', 
-                   'ITGAD', 'KCNA2', 'KCNJ5', 'KCNMA1-AS3', 'KLHDC8B', 'LINC01091', 'LINC01500', 'LINC01648', 'LINC01857', 
-                   'LRRC39', 'MCOLN3', 'MLPH', 'MYO1D', 'PDE3A', 'PKD2L1', 'PNPLA3', 'RARRES1', 'SLC18B1', 'SLC19A2', 
-                   'SLC47A1', 'SULT1C2', 'TFCP2L1', 'TMEM255A', 'ZNF589'],
-    'Foam Cell Differentiation': [
-        'CSF1', 'ITGB3', 'NR1H3', 'PPARG', 'CD36', 'LIPA', 
-        'TREM2', 'SPP1', 'GPNMB', 'MSR1', 'LPL', 'ABCG1', 'CD9', 'LGALS3', 'FABP4'
-    ],
+    # 'Foam_SPP1+': ['ADCY3', 'ANXA2', 'ARHGAP10', 'ATP6V0D2', 'C4orf45', 'CD109', 'CELSR1', 'CSF1', 'CSTB', 'CT69', 'DPP4', 
+    #               'FABP5', 'FNIP2', 'HRK', 'ITGAX', 'ITGB3', 'KCP', 'KIAA0319', 'LGALS3', 'LINC01010', 'LINC02099', 'MGLL', 
+    #               'MIR155HG', 'MYO1E', 'NUPR1', 'PRKCH', 'RAI14', 'RALA', 'RCAN3', 'SCD', 'SH3D21', 'SHC3', 'SLC22A15', 'LPL', 
+    #               'SLC26A11', 'SLC43A3', 'SLC5A4-AS1', 'SPP1', 'TM4SF19', 'TM4SF19-AS1', 'WHRN', 'ZBTB7C', 'ZFYVE28', 'ZMIZ1-AS1'],
+    # 'Foam_SPP1-': ['ACP5', 'ADTRP', 'AFAP1L1', 'ALDH1A1', 'ALOX15B', 'ANKRD29', 'BEAN1', 'CCL18', 'CD22', 'CHIT1', 
+    #                'CHRNA1', 'CPEB1', 'CPM', 'CYP27A1', 'DNAJC5B', 'FCHO2', 'GALNTL6', 'HS3ST2', 'HS3ST3A1', 'HTRA4', 
+    #                'ITGAD', 'KCNA2', 'KCNJ5', 'KCNMA1-AS3', 'KLHDC8B', 'LINC01091', 'LINC01500', 'LINC01648', 'LINC01857', 
+    #                'LRRC39', 'MCOLN3', 'MLPH', 'MYO1D', 'PDE3A', 'PKD2L1', 'PNPLA3', 'RARRES1', 'SLC18B1', 'SLC19A2', 
+    #                'SLC47A1', 'SULT1C2', 'TFCP2L1', 'TMEM255A', 'ZNF589'],
+    # 'Foam Cell Differentiation': [
+    #     'CSF1', 'ITGB3', 'NR1H3', 'PPARG', 'CD36', 'LIPA', 
+    #     'TREM2', 'SPP1', 'GPNMB', 'MSR1', 'LPL', 'ABCG1', 'CD9', 'LGALS3', 'FABP4'
+    # ],
+    'Foam Cell Differentiation': ['TGFB1', 'SOAT2', 'STAT1', 'WNT5A', 'SOAT1', 'PPARG'],
     'Cell Adhesion & Migration': [
         'ITGA3', 'PALLD', 'MYOF', 'MYO1E', 'ASAP1', 'DOCK3', 
         'ICAM1', 'VCAM1', 'ITGAM', 'ITGAX', 'SELE'
@@ -225,35 +226,35 @@ gene_modules = {
     #     'GSTP1', 'GSTM1', 'EPHX1'
     # ],
         # --- Proliferation & Regulation ---
-    'Proliferating': [
-        'LINC01572', 'POLQ', 'DIAPH3', 'NSD2', 'CIT', 'STAG1', 'SMC4', 'NCAPG2', 'KNL1', 'EZH2', 
-        'CENPP', 'ATAD2', 'BRIP1', 'MELK', 'CENPK', 'GTSE1', 'C21orf58', 'TOP2A', 'ANLN', 'NUSAP1', 
-        'SUGP2', 'RRM2', 'CEP128', 'CENPE', 'ASPM', 'BRCA1', 'KIF11', 'KIF18B', 'DEK', 'BUB1B', 
-        'CENPF', 'MIR924HG', 'ARHGAP11B', 'NCAPG', 'TACC3', 'BARD1', 'IQGAP3', 'STIL', 'FANCA', 
-        'ASPH', 'BRCA2', 'GEN1', 'MKI67', 'Z94721.1', 'LINC00342', 'KIF4A', 'DTL', 'CCDC18', 
-        'KIFC1', 'CIP2A', 'PRIM2', 'RTTN', 'TMPO', 'TPX2', 'FANCD2', 'KIF14', 'SGO2', 'CENPI', 
-        'AURKB', 'KNTC1', 'FANCI', 'KIF15', 'CEP192', 'NDC80', 'RRM1', 'CLSPN', 'POLE2', 'NCAPD3', 
-        'KIF20B', 'FOXM1', 'HMGN2', 'RBL1', 'NCAPH', 'FAM111A', 'ATAD5', 'CDK5RAP2', 'MASTL', 
-        'PRC1', 'PRR11', 'SHCBP1', 'KIF2A', 'WDR62', 'PARPBP', 'MIR4435-2HG', 'CKAP2L', 'SMC6', 
-        'CYTOR', 'ZGRF1', 'ARHGAP11A', 'CKAP5', 'NUF2', 'PLK4'
-    ],
+    # 'Proliferating': [
+    #     'LINC01572', 'POLQ', 'DIAPH3', 'NSD2', 'CIT', 'STAG1', 'SMC4', 'NCAPG2', 'KNL1', 'EZH2', 
+    #     'CENPP', 'ATAD2', 'BRIP1', 'MELK', 'CENPK', 'GTSE1', 'C21orf58', 'TOP2A', 'ANLN', 'NUSAP1', 
+    #     'SUGP2', 'RRM2', 'CEP128', 'CENPE', 'ASPM', 'BRCA1', 'KIF11', 'KIF18B', 'DEK', 'BUB1B', 
+    #     'CENPF', 'MIR924HG', 'ARHGAP11B', 'NCAPG', 'TACC3', 'BARD1', 'IQGAP3', 'STIL', 'FANCA', 
+    #     'ASPH', 'BRCA2', 'GEN1', 'MKI67', 'Z94721.1', 'LINC00342', 'KIF4A', 'DTL', 'CCDC18', 
+    #     'KIFC1', 'CIP2A', 'PRIM2', 'RTTN', 'TMPO', 'TPX2', 'FANCD2', 'KIF14', 'SGO2', 'CENPI', 
+    #     'AURKB', 'KNTC1', 'FANCI', 'KIF15', 'CEP192', 'NDC80', 'RRM1', 'CLSPN', 'POLE2', 'NCAPD3', 
+    #     'KIF20B', 'FOXM1', 'HMGN2', 'RBL1', 'NCAPH', 'FAM111A', 'ATAD5', 'CDK5RAP2', 'MASTL', 
+    #     'PRC1', 'PRR11', 'SHCBP1', 'KIF2A', 'WDR62', 'PARPBP', 'MIR4435-2HG', 'CKAP2L', 'SMC6', 
+    #     'CYTOR', 'ZGRF1', 'ARHGAP11A', 'CKAP5', 'NUF2', 'PLK4'
+    # ],
 
     # --- Inflammation & Immune Signaling ---
 
-    'Inflammatory': [
-        'IL1B', 'NLRP3', 'G0S2', 'SOD2', 'CEBPB', 'NFKBIA', 'INHBA', 'TNF', 'TREM1', 
-        'CCL2', 'CCL20', 'CCL7', 'CXCL1', 'CXCL2', 'CXCL3', 'CXCL8', 
-        'IL6', 'IL1A', 'IL18', 'PTGS2'
-    ],
-    'Inflammatory Response': [
-        'CXCL8', 'SLC11A1', 'C5AR2', 'WNT5A', 'C5AR1', 'NLRC4', 'CXCL3', 'CXCL2', 
-        'THBS1', 'NFKB1', 'IL6', 'OLR1', 'CD44', 'TLR4', 'TLR2', 'MYD88', 'CD14'
-    ],
+    # 'Inflammatory': [
+    #     'IL1B', 'NLRP3', 'G0S2', 'SOD2', 'CEBPB', 'NFKBIA', 'INHBA', 'TNF', 'TREM1', 
+    #     'CCL2', 'CCL20', 'CCL7', 'CXCL1', 'CXCL2', 'CXCL3', 'CXCL8', 
+    #     'IL6', 'IL1A', 'IL18', 'PTGS2'
+    # ],
+    # 'Inflammatory Response': [
+    #     'CXCL8', 'SLC11A1', 'C5AR2', 'WNT5A', 'C5AR1', 'NLRC4', 'CXCL3', 'CXCL2', 
+    #     'THBS1', 'NFKB1', 'IL6', 'OLR1', 'CD44', 'TLR4', 'TLR2', 'MYD88', 'CD14'
+    # ],
 
-    'Cytokine Production': [
-        'APP', 'SLC11A1', 'WNT5A', 'LAPTM5', 'EIF2AK3', 'HIF1A', 'MALT1', 'EREG', 
-        'TNF', 'IL10', 'TGFB1', 'IL12B', 'IL23A'
-    ],
+    # 'Cytokine Production': [
+    #     'APP', 'SLC11A1', 'WNT5A', 'LAPTM5', 'EIF2AK3', 'HIF1A', 'MALT1', 'EREG', 
+    #     'TNF', 'IL10', 'TGFB1', 'IL12B', 'IL23A'
+    # ],
 
     # --- Antigen Presentation ---
 
@@ -274,41 +275,41 @@ gene_modules = {
     #                                 'IFNG', 'SPACA3', 'CALR', 'DOCK2', 'GAS6', 'FCN1', 'FPR2', 'TNF', 'IL2RG', 'PTPRJ', 'TREM2', 'C4A', 
     #                                 'SIRPB1', 'C4B', 'PYCARD', 'UXT', 'CLEC7A', 'CD300LF', 'FCER1G', 'LYAR', 'CAMK1D', 'IL15RA', 'AHSG', 'NCKAP1L'],
 
-    'Angiogenesis': [
-        'BTG1', 'CXCL8', 'FLT1', 'CEMIP2', 'WNT5A', 'HIF1A', 'THBS1', 'HIPK2', 'VEGFA', 
-        'IL6', 'RGCC', 'AGO2', 'HMOX1', 'CTNNB1', 'GLUL', 
-        'KDR', 'FGF2', 'PDGFA'
-    ],
-    'Iron metabolism': [
-        'TFRC', 'FTH1', 'FTL', 'FPN1', 'NCOA4', 'HMOX1', 
-        'SLC40A1', 'IREB2', 'ACO1'
-    ],
-    'Ferroptosis': [
-        'FTH1', 'FTL', 'GPX4', 'SLC40A1', 'HMOX1', 
-        'ACSL4', 'TFRC', 'NCOA4', 'SLC7A11', 'SAT1', 'GSS'
-    ],
+    # 'Angiogenesis': [
+    #     'BTG1', 'CXCL8', 'FLT1', 'CEMIP2', 'WNT5A', 'HIF1A', 'THBS1', 'HIPK2', 'VEGFA', 
+    #     'IL6', 'RGCC', 'AGO2', 'HMOX1', 'CTNNB1', 'GLUL', 
+    #     'KDR', 'FGF2', 'PDGFA'
+    # ],
+    # 'Iron metabolism': [
+    #     'TFRC', 'FTH1', 'FTL', 'FPN1', 'NCOA4', 'HMOX1', 
+    #     'SLC40A1', 'IREB2', 'ACO1'
+    # ],
+    # 'Ferroptosis': [
+    #     'FTH1', 'FTL', 'GPX4', 'SLC40A1', 'HMOX1', 
+    #     'ACSL4', 'TFRC', 'NCOA4', 'SLC7A11', 'SAT1', 'GSS'
+    # ],
 
-    'MonoMac': ['AATBC', 'AC104809.2', 'APOBEC3A', 'ARHGAP29', 'CD300E', 'CDA', 'CEACAM3', 
-                'CFP', 'EIF4E3', 'F5', 'FCN1', 'GBP5', 'GLT1D1', 'GPR174', 'LILRA1', 'LILRA5', 'LIN7A', 
-                'LINC01619', 'LINC02085', 'LIPN', 'MCTP2', 'MEFV', 'NEBL', 'NLRP12', 'P2RX1', 'PADI4', 
-                'PFKFB4', 'PLAC8', 'PLCB1', 'PRR16', 'PTGER2', 'SLC2A6', 'SPOCK1', 'TMTC1', 'VCAN', 'VCAN-AS1'],
-    'Myeloid Differentiation': ['LYN', 'TET2', 'JAK2', 'HIPK2'],
-    'Response To Cytokine': ['RIPOR2','GBP5','PID1','LRRK2','IRAK3','MNDA','LILRB2','JAK2'],
-    'Protein Phosphorylation': ['LYN','USP25','MAP3K1','PRKCB','LRRK2','PTEN','IRAK3','SSH2','HIPK2','PTPRC','STK17B','SIK3','FYN','JAK2'],
-    'Negative Regulation Of Immune Response': ['CCR2', 'SPINK5', 'LYN', 'CD300A', 'AMBP', 'MUL1', 'RC3H1', 'LILRB1', 'FOXP3', 'ATG12', 'MAPK14', 
-                                                            'COL3A1', 'FCGR2B', 'FER', 'TRAFD1', 'SMCR8', 'PDCD1', 'ALOX15', 'TNFAIP3', 'CGAS', 'DTX4', 'NLRC3', 
-                                                            'TREM2', 'AURKB', 'IFNL1', 'PPP6C', 'IFI16', 'IRAK3', 'AKT1', 'BANF1', 'HAVCR2', 'LYAR', 'CR1', 'RHBDF2', 
-                                                            'YES1', 'SYK', 'PARP1' ,  ],
-    'Resident': ['ABCA9-AS1', 'ACSM4', 'C4BPB', 'CD163', 'CD163L1', 'CD209', 'CLEC4G', 'COLEC12', 
-                'CR1', 'EDA', 'F13A1', 'FCER2', 'FGF13', 'FOLR2', 'GFRA2', 'IL2RA', 'ITSN1', 
-                'LGI2', 'LILRB5', 'LINC01645', 'LINC01839', 'LYPLAL1-AS1', 'LYVE1', 'MAMDC2', 
-                'ME1', 'MPPED2', 'MRC1', 'NAV2-AS4', 'NAV2-IT1', 'NEURL2', 'PDGFC', 'PLEKHG5', 
-                'PLTP', 'RGL1', 'SCN9A', 'SELENOP', 'SHE', 'SLC39A12', 'SLC40A1', 'STON2', 
-                'TBX1', 'TDRD10', 'THBS1', 'TMEM236', 'TRIM50'],
-    'Response to Cytokine': [
-        'CIITA', 'PID1', 'IL1R1', 'FLT3', 'AFF3', 
-        'JAK1', 'JAK2', 'STAT1', 'STAT3', 'SOCS3', 'IRF1'
-    ],
+    # 'MonoMac': ['AATBC', 'AC104809.2', 'APOBEC3A', 'ARHGAP29', 'CD300E', 'CDA', 'CEACAM3', 
+    #             'CFP', 'EIF4E3', 'F5', 'FCN1', 'GBP5', 'GLT1D1', 'GPR174', 'LILRA1', 'LILRA5', 'LIN7A', 
+    #             'LINC01619', 'LINC02085', 'LIPN', 'MCTP2', 'MEFV', 'NEBL', 'NLRP12', 'P2RX1', 'PADI4', 
+    #             'PFKFB4', 'PLAC8', 'PLCB1', 'PRR16', 'PTGER2', 'SLC2A6', 'SPOCK1', 'TMTC1', 'VCAN', 'VCAN-AS1'],
+    # 'Myeloid Differentiation': ['LYN', 'TET2', 'JAK2', 'HIPK2'],
+    # 'Response To Cytokine': ['RIPOR2','GBP5','PID1','LRRK2','IRAK3','MNDA','LILRB2','JAK2'],
+    # 'Protein Phosphorylation': ['LYN','USP25','MAP3K1','PRKCB','LRRK2','PTEN','IRAK3','SSH2','HIPK2','PTPRC','STK17B','SIK3','FYN','JAK2'],
+    # 'Negative Regulation Of Immune Response': ['CCR2', 'SPINK5', 'LYN', 'CD300A', 'AMBP', 'MUL1', 'RC3H1', 'LILRB1', 'FOXP3', 'ATG12', 'MAPK14', 
+    #                                                         'COL3A1', 'FCGR2B', 'FER', 'TRAFD1', 'SMCR8', 'PDCD1', 'ALOX15', 'TNFAIP3', 'CGAS', 'DTX4', 'NLRC3', 
+    #                                                         'TREM2', 'AURKB', 'IFNL1', 'PPP6C', 'IFI16', 'IRAK3', 'AKT1', 'BANF1', 'HAVCR2', 'LYAR', 'CR1', 'RHBDF2', 
+    #                                                         'YES1', 'SYK', 'PARP1' ,  ],
+    # 'Resident': ['ABCA9-AS1', 'ACSM4', 'C4BPB', 'CD163', 'CD163L1', 'CD209', 'CLEC4G', 'COLEC12', 
+    #             'CR1', 'EDA', 'F13A1', 'FCER2', 'FGF13', 'FOLR2', 'GFRA2', 'IL2RA', 'ITSN1', 
+    #             'LGI2', 'LILRB5', 'LINC01645', 'LINC01839', 'LYPLAL1-AS1', 'LYVE1', 'MAMDC2', 
+    #             'ME1', 'MPPED2', 'MRC1', 'NAV2-AS4', 'NAV2-IT1', 'NEURL2', 'PDGFC', 'PLEKHG5', 
+    #             'PLTP', 'RGL1', 'SCN9A', 'SELENOP', 'SHE', 'SLC39A12', 'SLC40A1', 'STON2', 
+    #             'TBX1', 'TDRD10', 'THBS1', 'TMEM236', 'TRIM50'],
+    # 'Response to Cytokine': [
+    #     'CIITA', 'PID1', 'IL1R1', 'FLT3', 'AFF3', 
+    #     'JAK1', 'JAK2', 'STAT1', 'STAT3', 'SOCS3', 'IRF1'
+    # ],
     # 'ADCP_CRIPSRo_Up100':['CD47', 'GNE', 'CMAS', 'NANS', 'C1GALT1C1', 'QPCTL', 'SLC35A1',
     #    'MS4A1', 'CAB39', 'UBE2D3', 'ARID1A', 'PDCD10', 'C1GALT1', 'PTEN',
     #    'APMAP', 'RTN4IP1', 'AIFM1', 'FDX1', 'NDUFA1', 'GTPBP6', 'NDUFS8',
@@ -732,27 +733,37 @@ def rename_marker_dict(markers, rename_dict):
     return marker_dict
 
 
-def cluster_program(adata_avg, n_clusters=None, method='kmeans'):
-    if n_clusters is None:
-        n_clusters = adata_avg.shape[0] #+ 2
+def cluster_program(adata_avg, n_clusters=25, method='hclust'):
+    # if n_clusters is None:
+    #     n_clusters = 25#adata_avg.shape[0]
 
-    from sklearn.cluster import KMeans
-    from scipy.cluster.hierarchy import dendrogram, linkage
     if method == 'kmeans':
+        from sklearn.cluster import KMeans
         kmeans = KMeans(n_clusters=n_clusters, random_state=0)
         adata_avg.var['cluster'] = np.array(kmeans.fit_predict(adata_avg.X.T)).astype(str)
+        gene_cluster_dict = adata_avg.var.groupby('cluster').groups
+        gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
     elif method == 'hclust':
-        linkage_matrix = linkage(adata_avg.X.T, method='ward')
-        cluster_labels = linkage_matrix[:, 2]  # Use the third column for cluster labels
-        adata_avg.var['cluster'] = cluster_labels.astype(str)
+        from scipy.cluster.hierarchy import linkage, fcluster, leaves_list
+        X = adata_avg.X.T  # (n_genes, n_celltypes)
+        Z = linkage(X, method='ward')
+        labels = fcluster(Z, n_clusters, criterion='maxclust').astype(str)
 
-    gene_cluster_dict = adata_avg.var.groupby('cluster').groups
-    gene_cluster_dict = {k: v.tolist() for k, v in gene_cluster_dict.items()}
+        # preserve dendrogram leaf order within each cluster so similar genes are adjacent
+        leaf_pos = np.empty(len(leaves_list(Z)), dtype=int)
+        leaf_pos[leaves_list(Z)] = np.arange(len(leaf_pos))
+
+        adata_avg.var['cluster'] = labels
+        adata_avg.var['_dend_order'] = leaf_pos
+        gene_cluster_dict = {
+            k: grp.sort_values('_dend_order').index.tolist()
+            for k, grp in adata_avg.var.groupby('cluster')
+        }
 
     return gene_cluster_dict
 
 
-def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=300, filter_pseudo=True, **kwargs):
+def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=25, top_n=300, filter_pseudo=True, method='hclust', **kwargs):
     """
     Find gene program for each cell type
     """
@@ -769,12 +780,12 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=No
     # sc.pp.scale(adata_avg, zero_center=True)
     adata_avg_ = adata_avg[:, marker_list].copy()
 
-    gene_cluster_dict = cluster_program(adata_avg_, n_clusters=n_clusters)
+    gene_cluster_dict = cluster_program(adata_avg_, n_clusters=n_clusters, method=method)
 
     return gene_cluster_dict, adata_avg
 
 
-def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=None, top_n=-1, pval_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, **kwargs):
+def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=25, top_n=-1, pval_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, **kwargs):
     """
     Find peak program for each cell type
     """
@@ -894,6 +905,36 @@ def find_consensus_program(adata, groupby='cell_type', across=None, set_type='ge
     return gene_cluster_dict, adata_avg
 
 
+
+
+def find_consensus_links(link_dict_a, link_dict_b):
+    """
+    Find consensus peak-to-gene links supported in both datasets.
+
+    Parameters
+    ----------
+    link_dict_a, link_dict_b : dict[str, DataFrame] or DataFrame
+        DataFrames with at least columns ['peak', 'gene'], optionally
+        grouped by cluster/cell-type as dict values.
+
+    Returns
+    -------
+    pd.DataFrame
+        Consensus links with columns: peak, gene.
+    """
+    import pandas as pd
+
+    def to_df(obj):
+        if isinstance(obj, pd.DataFrame):
+            return obj[['peak', 'gene']].drop_duplicates()
+        return pd.concat(
+            [df[['peak', 'gene']] for df in obj.values()],
+            ignore_index=True,
+        ).drop_duplicates()
+
+    df_a = to_df(link_dict_a)
+    df_b = to_df(link_dict_b)
+    return df_a.merge(df_b, on=['peak', 'gene']).reset_index(drop=True)
 
 
 def find_go_term_gene(df, term):
@@ -1059,3 +1100,82 @@ def reorder(adata, groupby='cell_type', order=None):
     #     order = adata.obs[groupby].value_counts().index.tolist()
     adata.obs[groupby] = adata.obs[groupby].astype(str).astype('category').cat.reorder_categories(order)
     return adata
+
+
+def reorder_marker_dict_diagonal(marker_dict, avg_adata, groupby='cell_type'):
+    """
+    Reorder clusters in marker_dict so each cluster is sorted by which cell type
+    expresses it most, producing a diagonal pattern in sc.pl.heatmap.
+
+    Parameters
+    ----------
+    marker_dict : dict
+        {cluster_label: [feature1, feature2, ...]} from find_peak_program / find_gene_program
+    avg_adata : AnnData
+        Averaged data (rows = cell types) returned alongside marker_dict
+    groupby : str
+        Column in avg_adata.obs that holds cell type labels
+
+    Returns
+    -------
+    dict with the same clusters but ordered diagonally
+    """
+    cell_types = avg_adata.obs[groupby].tolist()
+    ct_rank = {ct: i for i, ct in enumerate(cell_types)}
+
+    cluster_rank = {}
+    for cluster, features in marker_dict.items():
+        present = [f for f in features if f in avg_adata.var_names]
+        if not present:
+            cluster_rank[cluster] = len(cell_types)
+            continue
+        X = avg_adata[:, present].X
+        if hasattr(X, 'toarray'):
+            X = X.toarray()
+        dominant_ct = cell_types[int(np.argmax(X.mean(axis=1)))]
+        cluster_rank[cluster] = ct_rank[dominant_ct]
+
+    sorted_clusters = sorted(cluster_rank, key=lambda c: cluster_rank[c])
+    return {c: marker_dict[c] for c in sorted_clusters}
+
+def diagonal_heatmap(adata, groupby='cell_type', set_type='gene', order=None, dataset=None, **kwargs):
+    """
+    Find peak or gene programs and plot a diagonal heatmap where clusters are
+    automatically ordered to match their dominant cell type.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Single-cell data
+    groupby : str
+        Cell type column in adata.obs
+    set_type : str
+        'peak' or 'gene'
+    order : list|None
+        Explicit cell-type order for the heatmap columns. If None, uses the
+        order already present in adata.obs[groupby].
+    **kwargs
+        Passed to sc.pl.heatmap (e.g. cmap='RdBu_r', figsize=(12, 6))
+
+    Returns
+    -------
+    ordered_marker_dict, avg_adata
+    """
+    if set_type == 'peak':
+        if dataset is None:
+            marker_dict, avg_adata = find_peak_program(adata, groupby=groupby)
+        else:
+            marker_dict, avg_adata = find_consensus_program(adata, groupby=groupby, across=dataset, set_type='peak')
+    elif set_type == 'gene':
+        if dataset is None:
+            marker_dict, avg_adata = find_gene_program(adata, groupby=groupby)
+        else:
+            marker_dict, avg_adata = find_consensus_program(adata, groupby=groupby, across=dataset, set_type='gene')
+    else:
+        raise ValueError("set_type must be 'peak' or 'gene'")
+    if order is not None:
+        avg_adata = reorder(avg_adata, groupby=groupby, order=order)
+
+    ordered_dict = reorder_marker_dict_diagonal(marker_dict, avg_adata, groupby=groupby)
+    sc.pl.heatmap(avg_adata, ordered_dict, groupby=groupby, **kwargs)
+    return ordered_dict, avg_adata
