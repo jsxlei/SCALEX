@@ -15,27 +15,29 @@ import seaborn as sns
             
             
 def embedding(
-        adata, 
-        color='celltype', 
-        color_map=None, 
-        groupby='batch', 
-        groups=None, 
-        cond2=None, 
-        v2=None, 
-        save=None, 
-        legend_loc='right margin', 
-        legend_fontsize=None, 
-        legend_fontweight='bold', 
-        sep='_', 
+        adata,
+        color='cell_type',
+        color_map=None,
+        groupby='batch',
+        groups=None,
+        cell_order=None,
+        cond2=None,
+        v2=None,
+        save=None,
+        legend_loc='right margin',
+        legend_fontsize=None,
+        legend_fontweight=None,
+        sep='_',
         basis='X_umap',
-        size=30,
+        size=20,
+        wspace=0.5,
         n_cols=4,
         show=True,
         **kwargs
     ):
     """
     plot separated embeddings with others as background
-    
+
     Parameters
     ----------
     adata
@@ -48,6 +50,8 @@ def embedding(
         condition which is based-on to separate
     groups
         specific groups to be shown
+    cell_order
+        explicit ordering for color category assignment
     cond2
         another targeted condition
     v2
@@ -57,52 +61,83 @@ def embedding(
     size
         dot size on the embedding
     """
-    
     if groups is None:
-        _groups = adata.obs[groupby].cat.categories
+        _groups = adata.obs[groupby].astype('category').cat.categories
     else:
         _groups = groups
 
+    if cell_order is not None:
+        orig_order = list(cell_order)
+    else:
+        orig_order = adata.obs[color].astype('category').cat.categories.tolist()
+
+    # Build a globally-consistent color map so colors are stable across subplots
+    if color_map is not None:
+        _color_map = dict(color_map)
+    elif f'{color}_colors' in adata.uns:
+        cats = adata.obs[color].astype('category').cat.categories
+        _color_map = dict(zip(cats, adata.uns[f'{color}_colors']))
+    else:
+        default_pal = sc.pl.palettes.default_102
+        _color_map = {c: default_pal[i % len(default_pal)] for i, c in enumerate(orig_order)}
+    _color_map[''] = 'lightgray'
+
     # Create subplots
     n_plots = len(_groups)
-    n_rows = (n_plots + n_cols - 1) // n_cols  # Calculate number of rows
+    n_rows = (n_plots + n_cols - 1) // n_cols
     figsize = 4
-    wspace = 0.5
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * figsize + figsize * wspace * (n_cols - 1), n_rows * figsize)) #(5*n_cols+5, 5*n_rows))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * figsize + figsize * wspace * (n_cols - 1), n_rows * figsize))
 
     for j, ax in enumerate(axes.flatten()):
         if j < n_plots:
             b = _groups[j]
             adata.obs['tmp'] = adata.obs[color].astype(str)
-            adata.obs.loc[adata.obs[groupby]!=b, 'tmp'] = ''
+            adata.obs.loc[adata.obs[groupby] != b, 'tmp'] = ''
             if cond2 is not None:
-                adata.obs.loc[adata.obs[cond2]!=v2, 'tmp'] = ''
-                groups = list(adata[(adata.obs[groupby]==b) & 
-                                    (adata.obs[cond2]==v2)].obs[color].astype('category').cat.categories.values)
-                size = max(size, 12000/len(adata[(adata.obs[groupby]==b) & (adata.obs[cond2]==v2)]))
+                adata.obs.loc[adata.obs[cond2] != v2, 'tmp'] = ''
+                subset = adata[(adata.obs[groupby] == b) & (adata.obs[cond2] == v2)]
+                present = set(subset.obs[color].dropna().astype(str).unique())
+                color_groups = [c for c in orig_order if c in present]
+                size = max(size, 12000 / len(subset))
             else:
-                groups = list(adata[adata.obs[groupby]==b].obs[color].astype('category').cat.categories.values)
-                size = max(size, 12000/len(adata[adata.obs[groupby]==b]))
+                subset = adata[adata.obs[groupby] == b]
+                present = set(subset.obs[color].dropna().astype(str).unique())
+                color_groups = [c for c in orig_order if c in present]
+                size = max(size, 12000 / len(subset))
             adata.obs['tmp'] = adata.obs['tmp'].astype('category')
-            if color_map is not None:
-                palette = [color_map[i] if i in color_map else 'gray' for i in adata.obs['tmp'].cat.categories]
-            else:
-                palette = None
+            tmp_cats = set(adata.obs['tmp'].cat.categories)
+            ordered = [''] + [c for c in orig_order if c in tmp_cats]
+            adata.obs['tmp'] = adata.obs['tmp'].cat.reorder_categories(ordered)
+            palette = [_color_map.get(c, 'lightgray') for c in adata.obs['tmp'].cat.categories]
 
-            title = b if cond2 is None else v2+sep+b
+            title = b if cond2 is None else v2 + sep + b
 
-            ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=groups, ax=ax, title=title, palette=palette, size=size, 
-                    legend_loc=legend_loc, legend_fontsize=legend_fontsize, legend_fontweight=legend_fontweight, wspace=wspace, show=False, **kwargs)
-            # ax.set_aspect('equal')
-            # ax.set_aspect('equal', adjustable='box')
-            
+            ax = sc.pl.embedding(adata, color='tmp', basis=basis, groups=color_groups, ax=ax, title=title,
+                    palette=palette, size=size, legend_loc='none', wspace=wspace, show=False, **kwargs)
+
+            # Manually add legend in cell_order order (bypasses scanpy's internal ordering)
+            if legend_loc not in (None, 'none', False):
+                from matplotlib.lines import Line2D
+                _fs = legend_fontsize or 8
+                handles = [
+                    Line2D([0], [0], marker='o', color='w', markerfacecolor=_color_map[c],
+                           label=c, markersize=_fs)
+                    for c in color_groups
+                ]
+                ax.legend(
+                    handles=handles,
+                    loc='center left',
+                    bbox_to_anchor=(1.05, 0.5),
+                    frameon=False,
+                    prop={'size': _fs, 'weight': legend_fontweight or 'normal'},
+                )
+
             del adata.obs['tmp']
             del adata.uns['tmp_colors']
         else:
             fig.delaxes(ax)
 
     plt.subplots_adjust(wspace=wspace)
-
 
     if save:
         plt.savefig(save, bbox_inches='tight')
@@ -321,15 +356,144 @@ def plot_meta2(
 import seaborn as sns
 from scipy.cluster.hierarchy import linkage as hclust, leaves_list
 from scipy.spatial.distance import pdist
+from scipy.optimize import linear_sum_assignment
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 import matplotlib as mpl
+
+
+def _get_representation(adata, use_rep):
+    """Return a dense 2-D numpy array from obsm, layers, or X."""
+    if use_rep in adata.obsm:
+        return np.array(adata.obsm[use_rep])
+    X = adata.layers[use_rep] if use_rep in adata.layers else adata.X
+    if hasattr(X, 'toarray'):
+        X = X.toarray()
+    return np.array(X)
+
+
+def _subsample(indices, obs_sub, color, max_cells_per_type, rng):
+    """Subsample so each cell-type has at most max_cells_per_type rows."""
+    if not max_cells_per_type:
+        return indices
+    keep = []
+    for ct in obs_sub[color].unique():
+        ct_idx = indices[obs_sub[color].values == ct]
+        if len(ct_idx) > max_cells_per_type:
+            ct_idx = rng.choice(ct_idx, max_cells_per_type, replace=False)
+        keep.append(ct_idx)
+    return np.sort(np.concatenate(keep))
+
+
+def _cluster_order(X):
+    Z = hclust(pdist(X, metric='correlation'), method='average')
+    return leaves_list(Z)
+
+
+def _diagonal_order(obs_sub, X_clust, cat_order, color):
+    """Sort by category order; cluster within each type."""
+    groups = []
+    for ct in cat_order:
+        local = np.where(obs_sub[color].values == ct)[0]
+        if len(local) == 0:
+            continue
+        if len(local) > 2:
+            local = local[_cluster_order(X_clust[local])]
+        groups.append(local)
+    return np.concatenate(groups) if groups else np.arange(len(obs_sub))
+
+
+def _rgba(series, palette):
+    return np.array([to_rgba(palette.get(str(v), '#888888')) for v in series])
+
+
+def _pearson_cross(A, B):
+    """Pearson cross-correlation matrix between rows of A and rows of B."""
+    A = A - A.mean(axis=1, keepdims=True)
+    B = B - B.mean(axis=1, keepdims=True)
+    A_n = A / (np.linalg.norm(A, axis=1, keepdims=True) + 1e-10)
+    B_n = B / (np.linalg.norm(B, axis=1, keepdims=True) + 1e-10)
+    return A_n @ B_n.T
+
+
+def _add_left_strip(fig, pos, rgba, label, x_offset, bar_w, fontsize):
+    ax_s = fig.add_axes([pos.x0 - x_offset, pos.y0, bar_w, pos.height])
+    ax_s.imshow(rgba[:, np.newaxis, :], aspect='auto', interpolation='none', origin='upper')
+    ax_s.set_xticks([])
+    ax_s.set_yticks([])
+    ax_s.set_title(label, fontsize=fontsize, pad=4)
+
+
+def _add_bottom_strip(fig, pos, rgba, label, bar_w, gap, fontsize):
+    ax_s = fig.add_axes([pos.x0, pos.y0 - bar_w - gap, pos.width, bar_w])
+    ax_s.imshow(rgba[np.newaxis, :, :], aspect='auto', interpolation='none', origin='upper')
+    ax_s.set_xticks([])
+    ax_s.set_yticks([])
+    ax_s.set_xlabel(label, fontsize=fontsize, labelpad=4)
+
+
+def _render_heatmap(fig, ax, corr_ord, row_obs, col_obs,
+                    color, batch, color_map, batch_palette,
+                    cmap, vmin, vmax, fontsize,
+                    title, row_label, col_label, compare, cat_order=None):
+    """Render heatmap, color strips, and legend onto fig/ax."""
+    sns.heatmap(corr_ord, ax=ax, cmap=cmap, center=0, vmin=vmin, vmax=vmax,
+                xticklabels=False, yticklabels=False,
+                square=(not compare),
+                cbar_kws={'shrink': 0.25, 'pad': 0.02,
+                          'anchor': (1.0, 0.0), 'label': 'Pearson r'})
+    ax.set_title(title, fontsize=fontsize + 2)
+    if row_label:
+        ax.set_ylabel(row_label, fontsize=fontsize)
+    if col_label:
+        ax.set_xlabel(col_label, fontsize=fontsize)
+
+    # ax.get_position() is valid immediately after plt.subplots — no canvas.draw() needed
+    pos = ax.get_position()
+    bar_w, gap = 0.015, 0.004
+
+    # left strip
+    if not compare and batch is not None:
+        _add_left_strip(fig, pos, _rgba(row_obs[batch], batch_palette),
+                        batch, bar_w + gap, bar_w, fontsize)
+        color_x_offset = bar_w * 2 + gap * 2
+    else:
+        color_x_offset = bar_w + gap
+    strip_label = color if not compare else f'{color} ({row_label})'
+    _add_left_strip(fig, pos, _rgba(row_obs[color], color_map),
+                    strip_label, color_x_offset, bar_w, fontsize)
+
+    # bottom strip (compare mode only)
+    if compare:
+        _add_bottom_strip(fig, pos, _rgba(col_obs[color], color_map),
+                          f'{color} ({col_label})', bar_w, gap, fontsize)
+
+    # legend
+    if not compare:
+        ct_handles = [Patch(color=c, label=k) for k, c in color_map.items()]
+        bat_handles = [Patch(color=c, label=k) for k, c in batch_palette.items()]
+        legend_handles = ct_handles
+        if bat_handles:
+            legend_handles += [Patch(visible=False, label='')] + bat_handles
+    else:
+        cats_row = set(row_obs[color].values)
+        cats_col = set(col_obs[color].values)
+        b1_h = [Patch(visible=False, label=row_label)] + [
+            Patch(color=color_map.get(k, '#888888'), label=k)
+            for k in cat_order if k in cats_row]
+        b2_h = [Patch(visible=False, label=col_label)] + [
+            Patch(color=color_map.get(k, '#888888'), label=k)
+            for k in cat_order if k in cats_col]
+        legend_handles = b1_h + [Patch(visible=False, label='')] + b2_h
+    ax.legend(handles=legend_handles, bbox_to_anchor=(1.02, 1),
+              loc='upper left', frameon=False, fontsize=fontsize)
+
 
 def plot_corr_clustermap(
     adata,
     use_rep='latent',
     color='celltype',
-    batch='batch',
+    batch=None,
     color_map=None,
     figsize=(12, 12),
     cmap='RdBu_r',
@@ -339,6 +503,11 @@ def plot_corr_clustermap(
     vmin=-1,
     vmax=1,
     compare=False,
+    cat_order=None,
+    cluster_by_corr=False,
+    max_cells_per_type=500,
+    seed=0,
+    transpose=False,
 ):
     """
     Plot individual cell Pearson correlation heatmap with hierarchical clustering.
@@ -347,150 +516,120 @@ def plot_corr_clustermap(
     compare=True  : cross-batch N1×N2 heatmap; rows = batches[0], cols = batches[1].
                     Both axes sorted by shared cell-type order + within-type clustering
                     → same-type blocks on the diagonal.
-                    square=True makes each cell square, so the plot is N1/N2 aspect ratio.
+    cat_order     : optional list of cell-type names specifying the diagonal sort order.
+                    Inferred from categories if None.
+    cluster_by_corr: cluster axes by similarity (hierarchical); in compare mode, optimally
+                    aligns col-type blocks to row-type blocks using the Hungarian algorithm.
+    max_cells_per_type: max cells per cell-type (default 500); random subsampling applied
+                    before computing correlations.
+    seed          : random seed for subsampling reproducibility (default 0).
     """
     mpl.rcParams['axes.grid'] = False
 
-    if batches is None:
+    if batch is not None and batches is None:
         batches = list(adata.obs[batch].astype('category').cat.categories)
 
-    # ── representation ──────────────────────────────────────────────────────────
-    if use_rep in adata.obsm:
-        X_all = np.array(adata.obsm[use_rep])
-    elif use_rep in adata.layers:
-        X_all = adata.layers[use_rep]
-        if hasattr(X_all, 'toarray'):
-            X_all = X_all.toarray()
-        X_all = np.array(X_all)
-    else:
-        X_all = adata.X
-        if hasattr(X_all, 'toarray'):
-            X_all = X_all.toarray()
-        X_all = np.array(X_all)
+    X_all = _get_representation(adata, use_rep)
 
-    # ── palettes ────────────────────────────────────────────────────────────────
     if color_map is None:
         cats = adata.obs[color].astype('category').cat.categories
         color_map = {k: mpl.colors.rgb2hex(c)
                      for k, c in zip(cats, sns.color_palette('tab10', len(cats)))}
 
-    batch_palette = dict(zip(
-        batches, ['#4878CF', '#D65F5F', '#5cb85c', '#f0ad4e'][:len(batches)]
-    ))
+    batch_palette = (
+        dict(zip(batches, ['#4878CF', '#D65F5F', '#5cb85c', '#f0ad4e'][:len(batches)]))
+        if batch is not None else {}
+    )
 
-    # ── shared helpers ───────────────────────────────────────────────────────────
-    def _cluster_order(X):
-        Z = hclust(pdist(X, metric='correlation'), method='average')
-        return leaves_list(Z)
-
-    def _rgba(series, palette):
-        return np.array([to_rgba(palette.get(str(v), '#888888')) for v in series])
-
-    def _add_left_strip(fig, pos, rgba, label, x_offset, bar_w, fontsize):
-        ax_s = fig.add_axes([pos.x0 - x_offset, pos.y0, bar_w, pos.height])
-        ax_s.imshow(rgba[:, np.newaxis, :], aspect='auto', interpolation='none', origin='upper')
-        ax_s.set_xticks([]); ax_s.set_yticks([])
-        ax_s.set_title(label, fontsize=fontsize, pad=4)
-
-    def _add_bottom_strip(fig, pos, rgba, label, bar_w, gap, fontsize):
-        ax_s = fig.add_axes([pos.x0, pos.y0 - bar_w - gap, pos.width, bar_w])
-        ax_s.imshow(rgba[np.newaxis, :, :], aspect='auto', interpolation='none', origin='upper')
-        ax_s.set_xticks([]); ax_s.set_yticks([])
-        ax_s.set_xlabel(label, fontsize=fontsize, labelpad=4)
+    rng = np.random.default_rng(seed)
 
     # ── single heatmap ───────────────────────────────────────────────────────────
     if not compare:
-        corr     = np.corrcoef(X_all)
-        order    = _cluster_order(X_all)
+        all_idx = _subsample(np.arange(len(adata)), adata.obs, color, max_cells_per_type, rng)
+        X_sub   = X_all[all_idx]
+        obs_sub = adata.obs.iloc[all_idx]
+
+        cat_order_all = adata.obs[color].astype('category').cat.categories
+        corr  = np.corrcoef(X_sub)
+        order = (_cluster_order(corr) if cluster_by_corr
+                 else _diagonal_order(obs_sub, X_sub, cat_order_all, color))
         corr_ord = corr[np.ix_(order, order)]
-        obs_ord  = adata.obs.iloc[order]
+        row_obs  = obs_sub.iloc[order]
 
         fig, ax = plt.subplots(figsize=figsize)
-        sns.heatmap(corr_ord, ax=ax, cmap=cmap, center=0, vmin=vmin, vmax=vmax,
-                    xticklabels=False, yticklabels=False, square=True,
-                    cbar_kws={'shrink': 0.4, 'label': 'Pearson r'})
-        ax.set_title('Cell–cell Correlation (Hierarchically Clustered)', fontsize=fontsize + 2)
-
-        fig.canvas.draw()
-        pos   = ax.get_position()
-        bar_w = 0.015
-        gap   = 0.004
-
-        _add_left_strip(fig, pos, _rgba(obs_ord[batch], batch_palette),
-                        batch, bar_w + gap,     bar_w, fontsize)
-        _add_left_strip(fig, pos, _rgba(obs_ord[color], color_map),
-                        color, bar_w*2 + gap*2, bar_w, fontsize)
-
-        ct_handles  = [Patch(color=c, label=k) for k, c in color_map.items()]
-        bat_handles = [Patch(color=c, label=k) for k, c in batch_palette.items()]
-        ax.legend(handles=ct_handles + [Patch(visible=False, label='')] + bat_handles,
-                  bbox_to_anchor=(1.15, 1), loc='upper left', frameon=False, fontsize=fontsize)
+        _render_heatmap(fig, ax, corr_ord, row_obs=row_obs, col_obs=row_obs,
+                        color=color, batch=batch, color_map=color_map,
+                        batch_palette=batch_palette, cmap=cmap, vmin=vmin, vmax=vmax,
+                        fontsize=fontsize,
+                        title='Cell–cell Correlation (Hierarchically Clustered)',
+                        row_label=None, col_label=None, compare=False)
 
     # ── cross-batch comparison ───────────────────────────────────────────────────
     else:
         b1, b2 = batches[0], batches[1]
-        idx1   = np.where(adata.obs[batch] == b1)[0]
-        idx2   = np.where(adata.obs[batch] == b2)[0]
-        X1, X2 = X_all[idx1], X_all[idx2]
-        obs1   = adata.obs.iloc[idx1]
-        obs2   = adata.obs.iloc[idx2]
+        idx1 = np.where(adata.obs[batch] == b1)[0]
+        idx2 = np.where(adata.obs[batch] == b2)[0]
+        X1, obs1 = X_all[idx1], adata.obs.iloc[idx1]
+        X2, obs2 = X_all[idx2], adata.obs.iloc[idx2]
 
-        # shared cell-type ordering → same types land on the diagonal
-        cat_order = adata.obs[color].astype('category').cat.categories
+        sub1 = _subsample(np.arange(len(obs1)), obs1, color, max_cells_per_type, rng)
+        sub2 = _subsample(np.arange(len(obs2)), obs2, color, max_cells_per_type, rng)
+        X1, obs1 = X1[sub1], obs1.iloc[sub1]
+        X2, obs2 = X2[sub2], obs2.iloc[sub2]
 
-        def _diagonal_order(obs_sub, X_sub):
-            """Sort by shared category order; cluster within each type."""
-            groups = []
-            for ct in cat_order:
-                local = np.where(obs_sub[color].values == ct)[0]
-                if len(local) == 0:
-                    continue
-                if len(local) > 2:
-                    local = local[_cluster_order(X_sub[local])]
-                groups.append(local)
-            return np.concatenate(groups) if groups else np.arange(len(obs_sub))
+        if cat_order is None:
+            cat_order = adata.obs[color].astype('category').cat.categories
 
-        # Pearson cross-correlation (N1 × N2)
-        def _pearson_cross(A, B):
-            A = A - A.mean(axis=1, keepdims=True)
-            B = B - B.mean(axis=1, keepdims=True)
-            A_n = A / (np.linalg.norm(A, axis=1, keepdims=True) + 1e-10)
-            B_n = B / (np.linalg.norm(B, axis=1, keepdims=True) + 1e-10)
-            return A_n @ B_n.T
+        corr_full = _pearson_cross(X1, X2)
 
-        order1   = _diagonal_order(obs1, X1)
-        order2   = _diagonal_order(obs2, X2)
-        corr_ord = _pearson_cross(X1, X2)[np.ix_(order1, order2)]
-        obs1_ord = obs1.iloc[order1]
-        obs2_ord = obs2.iloc[order2]
+        if cluster_by_corr:
+            order1 = _cluster_order(corr_full)
+            order2 = _cluster_order(corr_full.T)
+            obs1_tmp = obs1.iloc[order1]
+            obs2_tmp = obs2.iloc[order2]
+            corr_tmp = corr_full[np.ix_(order1, order2)]
+
+            types1 = [ct for ct in cat_order if ct in set(obs1_tmp[color].values)]
+            types2 = [ct for ct in cat_order if ct in set(obs2_tmp[color].values)]
+            C = np.array([
+                [corr_tmp[np.ix_(
+                    np.where(obs1_tmp[color].values == t1)[0],
+                    np.where(obs2_tmp[color].values == t2)[0],
+                )].mean()
+                for t2 in types2]
+                for t1 in types1
+            ])
+            _, col_perm = linear_sum_assignment(-C)
+            unmatched = [j for j in range(len(types2)) if j not in set(col_perm)]
+            new_col_order = np.concatenate([
+                np.where(obs2_tmp[color].values == types2[j])[0]
+                for j in list(col_perm) + unmatched
+            ])
+            order2 = order2[new_col_order]
+        else:
+            order1 = _diagonal_order(obs1, X1, cat_order, color)
+            order2 = _diagonal_order(obs2, X2, cat_order, color)
+
+        corr_ord = corr_full[np.ix_(order1, order2)]
+        obs1_ord, obs2_ord = obs1.iloc[order1], obs2.iloc[order2]
+
+        row_b, col_b     = (b2, b1) if transpose else (b1, b2)
+        row_obs, col_obs = (obs2_ord, obs1_ord) if transpose else (obs1_ord, obs2_ord)
+        heatmap_data     = corr_ord.T if transpose else corr_ord
 
         fig, ax = plt.subplots(figsize=figsize)
-        # square=True makes each cell square: N1==N2 → square plot, N1≠N2 → N1/N2 aspect ratio
-        sns.heatmap(corr_ord, ax=ax, cmap=cmap, center=0, vmin=vmin, vmax=vmax,
-                    xticklabels=False, yticklabels=False, square=True,
-                    cbar_kws={'shrink': 0.4, 'label': 'Pearson r'})
-        ax.set_ylabel(f'{b1} cells', fontsize=fontsize)
-        ax.set_xlabel(f'{b2} cells', fontsize=fontsize)
-        ax.set_title(f'Cell Correlation: {b1} (rows) vs {b2} (cols)', fontsize=fontsize + 2)
-
-        fig.canvas.draw()
-        pos   = ax.get_position()
-        bar_w = 0.015
-        gap   = 0.004
-
-        _add_left_strip(fig, pos, _rgba(obs1_ord[color], color_map),
-                        f'{color} ({b1})', bar_w + gap, bar_w, fontsize)
-        _add_bottom_strip(fig, pos, _rgba(obs2_ord[color], color_map),
-                          f'{color} ({b2})', bar_w, gap, fontsize)
-
-        ct_handles = [Patch(color=c, label=k) for k, c in color_map.items()]
-        ax.legend(handles=ct_handles, bbox_to_anchor=(1.15, 1),
-                  loc='upper left', frameon=False, fontsize=fontsize)
+        _render_heatmap(fig, ax, heatmap_data, row_obs=row_obs, col_obs=col_obs,
+                        color=color, batch=batch, color_map=color_map,
+                        batch_palette=batch_palette, cmap=cmap, vmin=vmin, vmax=vmax,
+                        fontsize=fontsize,
+                        title=f'Cell Correlation: {row_b} (rows) vs {col_b} (cols)',
+                        row_label=f'{row_b} cells', col_label=f'{col_b} cells',
+                        compare=True, cat_order=cat_order)
 
     if save:
-        plt.savefig(save, bbox_inches='tight')
-    else:
-        plt.show()
+        fig.savefig(save, bbox_inches='tight')
+    plt.show()
+    return fig
         
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, f1_score
@@ -938,3 +1077,45 @@ def plot_tracks(
     subprocess.run(cmd, shell=True, check=True)
 
     print(f"{fig_dir}/tracks.png")
+
+
+def plot_radar(df, save=None, vmax=1):
+    df = df.clip(lower=-vmax, upper=vmax).copy()
+    categories = df.columns.tolist()
+    labels = df.index.tolist()
+    data = df.values.tolist()
+    N = len(categories)
+    M = len(labels)
+    colors = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+    ][:M]
+
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    for values, label, color in zip(data, labels, colors):
+        values += values[:1]
+        ax.plot(angles, values, color=color, linewidth=2, label=label)
+        ax.fill(angles, values, color=color, alpha=0.2)
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_rlabel_position(30)
+    plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1], color="grey", size=8)
+    plt.ylim(0, 1)
+    plt.legend(loc="right", bbox_to_anchor=(1.4, 0.5))
+    if save is not None:
+        plt.savefig(save, bbox_inches='tight')
+    else:
+        plt.show()
+
+
+from scalex.pl._dotplot import dotplot
+from scalex.pl._jaccard import plot_jaccard_heatmap
+from scalex.pl._sankey import plot_sankey
+from scalex.pl._stackedplot import plot_crosstab, plot_crosstab_stacked
+from scalex.pl._heatmap import plot_heatmap
