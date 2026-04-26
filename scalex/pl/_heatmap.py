@@ -772,7 +772,7 @@ def plot_heatmap(
             ))
 
     else:
-        from scalex.analysis import filter_marker_dict
+        from scalex.pp.markers import filter_marker_dict
 
         def _prefilter(feat_spec, adata_list):
             """Filter feat_spec to features shared across all adatas."""

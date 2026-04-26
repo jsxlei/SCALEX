@@ -9,12 +9,39 @@ from sklearn.metrics import auc
 from scalex.pl._dotplot import dotplot
 
 
-def check_is_numeric(df, col):
+def check_is_numeric(df, col: str) -> bool:
+    """Check whether all values in a DataFrame column are numeric.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame.
+    col : str
+        Column name to check.
+
+    Returns
+    -------
+    bool
+        True if all values are numeric, False otherwise.
+    """
     col_values = df[col].astype(str)
     return pd.to_numeric(col_values, errors='coerce').notna().all()
 
 
-def parse_go_file(filepath):
+def parse_go_file(filepath: str) -> dict:
+    """Parse a tab-separated gene-set file into a dict.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to a tab-separated file where the first column is the
+        gene-set name and remaining columns are gene names.
+
+    Returns
+    -------
+    dict
+        Mapping of gene-set name → list of gene names.
+    """
     go_dict = {}
     with open(filepath, "r") as f:
         for line in f:
@@ -57,7 +84,32 @@ def enrich_analysis(gene_names, organism='hsapiens', gene_sets='GO_Biological_Pr
     return results[results['Adjusted P-value'] < cutoff]
 
 
-def enrich_and_plot(gene_names, organism='hsapiens', gene_sets='GO_Biological_Process_2023', cutoff=0.05, cmap='Reds', add='', save=None, figsize=None, vmin=None, vmax=None, **kwargs):
+def enrich_and_plot(gene_names, organism: str = 'hsapiens', gene_sets: str = 'GO_Biological_Process_2023', cutoff: float = 0.05, cmap: str = 'Reds', add: str = '', save=None, figsize=None, vmin=None, vmax=None, **kwargs):
+    """Run GO enrichment analysis and plot a dot plot of significant terms.
+
+    Parameters
+    ----------
+    gene_names : dict or pd.DataFrame
+        Mapping of cluster label → list of gene names.
+    organism : str, default 'hsapiens'
+        Organism code for gseapy.
+    gene_sets : str, default 'GO_Biological_Process_2023'
+        Gene set library name or path.
+    cutoff : float, default 0.05
+        Adjusted p-value threshold for significance.
+    cmap : str, default 'Reds'
+        Colormap for the dot plot.
+    add : str, default ''
+        Prefix to prepend to cluster labels in the plot.
+    save : str | None
+        Path to save the figure and GO results CSV.
+    figsize : tuple | None
+        Figure size override.
+    vmin, vmax : float | None
+        Color scale limits (in -log10 p-value units).
+    **kwargs
+        Additional keyword arguments forwarded to the dot plot.
+    """
     go_results = enrich_analysis(gene_names, organism=organism, gene_sets=gene_sets, cutoff=cutoff)
     if vmin is not None or vmax is not None:
         go_results = go_results.copy()
@@ -177,7 +229,22 @@ def find_go_term_gene(df, term):
     return set(gene for sublist in select['Genes'].str.split(';') for gene in sublist)
 
 
-def format_dict_of_list(d, out='table'):
+def format_dict_of_list(d: dict, out: str = 'table'):
+    """Convert a dict of lists to a DataFrame or a binary matrix.
+
+    Parameters
+    ----------
+    d : dict
+        Mapping of pathway/group name → list of items.
+    out : {'table', 'matrix'}, default 'table'
+        Output format. ``'table'`` returns a wide DataFrame (one column per
+        key). ``'matrix'`` returns a binary gene × pathway crosstab.
+
+    Returns
+    -------
+    pd.DataFrame
+        Formatted DataFrame.
+    """
     if out == 'matrix':
         data = [{'Gene': v, 'Pathway': k} for k, lt in d.items() for v in lt]
         df = pd.DataFrame(data)
@@ -259,21 +326,64 @@ def merge_all_go_results(path, datasets=None, top=20, out_dir=None, add_ref=Fals
     return concat_df
 
 
-def enrich_module(adata, gene_sets):
+def enrich_module(adata, gene_sets: dict):
+    """Score cells against gene sets using AUCell (via omicverse).
+
+    Parameters
+    ----------
+    adata : AnnData
+        Single-cell data.
+    gene_sets : dict
+        Mapping of gene-set name → list of genes.
+
+    Returns
+    -------
+    AnnData
+        ``adata`` with AUCell scores added to ``obs``.
+    """
     import omicverse as ov
     for k, v in gene_sets.items():
         ov.single.geneset_aucell(adata, geneset_name=k, geneset=v)
     return adata
 
 
-def plot_enrich_module(adata, gene_sets):
+def plot_enrich_module(adata, gene_sets: dict) -> None:
+    """Plot AUCell module scores on the UMAP embedding.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Single-cell data with AUCell scores in ``obs`` (computed by
+        :func:`enrich_module`).
+    gene_sets : dict
+        Gene sets whose AUCell scores to visualize.
+    """
     import scanpy as sc
     sc.pl.embedding(adata, basis='umap', color=["{}_aucell".format(i) for i in gene_sets.keys()])
 
 
-def plot_radar_module(adata, columns='cell_type', cols=None, save=None):
+def plot_radar_module(adata, columns: str = 'cell_type', cols=None, save=None):
+    """Plot a radar chart of mean AUCell scores per cell type.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Data with AUCell scores in ``obs``.
+    columns : str, default 'cell_type'
+        Column in ``obs`` to group cells by.
+    cols : list[str] | None
+        AUCell column names to plot. If None, all ``*_aucell`` columns
+        are used.
+    save : str | None
+        Path to save the figure.
+
+    Returns
+    -------
+    pd.DataFrame
+        Scaled average scores (range [0, 1]) per cell type.
+    """
     from scipy.stats import zscore
-    from scalex.plot import plot_radar
+    from scalex.pl.plot import plot_radar
 
     if cols is None:
         cols = [i for i in adata.obs.columns if i.endswith('aucell')]

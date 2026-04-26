@@ -1,9 +1,12 @@
-# Define the variable '__version__':
-__version__ = "1.0.7"
+"""SCALEX: Online single-cell data integration via a domain-conditional VAE."""
+
+__version__ = "1.1.0"
 __author__ = "Lei Xiong"
 __email__ = "jsxlei@gmail.com"
 
 from .function import SCALEX, label_transfer
+from . import pp, pl, tl
+from .tl import cluster
 from .pl.plot import (
     embedding, plot_expr, plot_meta, plot_meta2,
     plot_confusion, plot_radar, plot_heatmap, dotplot,

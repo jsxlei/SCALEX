@@ -4,7 +4,7 @@ import pandas as pd
 from collections import Counter
 from anndata import concat
 
-from scalex.data import aggregate_data
+from scalex.io import aggregate_data
 
 
 def get_markers(
@@ -57,15 +57,53 @@ def get_markers(
     return markers_dict
 
 
-def flatten_dict(markers):
+def flatten_dict(markers: dict) -> np.ndarray:
+    """Flatten a marker dict to a unique sorted array of all genes.
+
+    Parameters
+    ----------
+    markers : dict
+        Mapping of cluster label to list of gene names.
+
+    Returns
+    -------
+    np.ndarray
+        Unique sorted array of all gene names across all clusters.
+    """
     return np.unique([item for sublist in markers.values() for item in sublist])
 
 
-def flatten_list(lists):
+def flatten_list(lists: list) -> list:
+    """Flatten a list of lists into a single list.
+
+    Parameters
+    ----------
+    lists : list[list]
+        Nested list to flatten.
+
+    Returns
+    -------
+    list
+        Concatenated flat list.
+    """
     return [item for sublist in lists for item in sublist]
 
 
-def filter_marker_dict(markers, var_names):
+def filter_marker_dict(markers: dict, var_names) -> dict:
+    """Filter each cluster's gene list to genes present in var_names.
+
+    Parameters
+    ----------
+    markers : dict
+        Mapping of cluster label to list of gene names.
+    var_names : list[str] or Index
+        Reference gene list (e.g. ``adata.var_names``).
+
+    Returns
+    -------
+    dict
+        Same structure as ``markers`` with genes not in ``var_names`` removed.
+    """
     return {cluster: [i for i in genes if i in var_names] for cluster, genes in markers.items()}
 
 
@@ -90,7 +128,23 @@ def rename_marker_dict(markers, rename_dict):
     return marker_dict
 
 
-def cluster_program(adata_avg, n_clusters=25, method='hclust'):
+def cluster_program(adata_avg, n_clusters: int = 25, method: str = 'hclust') -> dict:
+    """Cluster genes into programs using k-means or hierarchical clustering.
+
+    Parameters
+    ----------
+    adata_avg : AnnData
+        Pseudobulk expression matrix (cell types × genes).
+    n_clusters : int, default 25
+        Number of gene clusters.
+    method : {'hclust', 'kmeans'}, default 'hclust'
+        Clustering method.
+
+    Returns
+    -------
+    dict
+        Mapping of cluster label (str) to list of gene names.
+    """
     if method == 'kmeans':
         from sklearn.cluster import KMeans
         kmeans = KMeans(n_clusters=n_clusters, random_state=0)
@@ -238,7 +292,26 @@ def find_consensus_links(link_dict_a, link_dict_b):
     return df_a.merge(df_b, on=['peak', 'gene']).reset_index(drop=True)
 
 
-def get_rank_dict(adata, cell_type='cell_type', n_top=100, to_dict=True):
+def get_rank_dict(adata, cell_type: str = 'cell_type', n_top: int = 100, to_dict: bool = True):
+    """Extract top ranked genes per cluster from ``adata.uns['rank_genes_groups']``.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Data with differential expression results in ``uns``.
+    cell_type : str, default 'cell_type'
+        Key used when computing rank_genes_groups (if not already computed).
+    n_top : int, default 100
+        Number of top genes to retrieve per cluster.
+    to_dict : bool, default True
+        If True, return a dict mapping cluster → gene list.
+        If False, return a DataFrame.
+
+    Returns
+    -------
+    dict or pd.DataFrame
+        Top ranked genes per cluster.
+    """
     if 'rank_genes_groups' not in adata.uns:
         sc.tl.rank_genes_groups(adata, cell_type)
     df = pd.DataFrame(adata.uns['rank_genes_groups']['names']).head(n_top)

@@ -1,4 +1,4 @@
-"""Deprecated: use ``scalex.io`` instead. Re-exported for backward compatibility."""
+"""I/O and preprocessing for single-cell datasets."""
 
 from scalex.io.load import (
     read_mtx,
@@ -6,9 +6,6 @@ from scalex.io.load import (
     load_files,
     concat_data,
     download_file,
-    DATA_PATH,
-    GENOME_PATH,
-    CHUNK_SIZE,
 )
 from scalex.io.preprocess import (
     aggregate_data,

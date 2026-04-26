@@ -53,12 +53,28 @@ def annotate(
         return None
 
 
-def reorder(adata, groupby='cell_type', order=None):
+def reorder(adata, groupby: str = 'cell_type', order=None):
+    """Reorder the categories of an obs column to a specified order.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Annotated data.
+    groupby : str, default 'cell_type'
+        Column in ``obs`` to reorder.
+    order : list
+        Desired category order.
+
+    Returns
+    -------
+    AnnData
+        Same ``adata`` with categories reordered in place.
+    """
     adata.obs[groupby] = adata.obs[groupby].astype(str).astype('category').cat.reorder_categories(order)
     return adata
 
 
-def reorder_marker_dict_diagonal(marker_dict, avg_adata, groupby='cell_type'):
+def reorder_marker_dict_diagonal(marker_dict: dict, avg_adata, groupby: str = 'cell_type') -> dict:
     """
     Merge clusters in marker_dict by their dominant cell type, producing a diagonal
     pattern in the heatmap. Clusters are merged into cell-type-keyed buckets.
