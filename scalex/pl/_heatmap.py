@@ -270,6 +270,78 @@ def plot_corr(
     return local_correlation_plot(corr_df, modules=modules, col_modules=col_modules, **kwargs)
 
 
+def _subsample_by_group(adata, groupby, n=50):
+    def _n_for_group(g):
+        k = max(1, round(len(g) * n)) if isinstance(n, float) else n
+        return g.sample(min(len(g), k))
+
+    idx = (
+        adata.obs.groupby(groupby, observed=True)
+        .apply(_n_for_group)
+        .index.get_level_values(-1)
+    )
+    return adata[idx]
+
+
+def _pearson_corr(X):
+    """Pearson correlation matrix between rows of X (float32, normalized matmul)."""
+    X = X.astype(np.float32)
+    X_c = X - X.mean(axis=1, keepdims=True)
+    norms = np.linalg.norm(X_c, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    X_n = X_c / norms
+    return X_n @ X_n.T
+
+
+def _pearson_cross(A, B):
+    """Pearson cross-correlation between rows of A and rows of B (float32)."""
+    A = A.astype(np.float32)
+    B = B.astype(np.float32)
+    A_c = A - A.mean(axis=1, keepdims=True)
+    B_c = B - B.mean(axis=1, keepdims=True)
+    A_n = A_c / (np.linalg.norm(A_c, axis=1, keepdims=True) + 1e-10)
+    B_n = B_c / (np.linalg.norm(B_c, axis=1, keepdims=True) + 1e-10)
+    return A_n @ B_n.T
+
+
+def plot_corr(
+        adata, adata2=None, groupby='cell_type', obsm_key='latent',
+        batch=None, subsample=False, subsample_n=50, **kwargs
+):
+    if batch is not None:
+        batches = adata.obs[batch].unique()
+        if len(batches) != 2:
+            raise ValueError(f"batch column '{batch}' must have exactly 2 unique values, got {list(batches)}")
+        adata, adata2 = adata[adata.obs[batch] == batches[0]], adata[adata.obs[batch] == batches[1]]
+
+    if subsample:
+        adata = _subsample_by_group(adata, groupby, subsample_n)
+        if adata2 is not None:
+            adata2 = _subsample_by_group(adata2, groupby, subsample_n)
+
+    if adata2 is None:
+        corr = _pearson_corr(adata.obsm[obsm_key])
+        idx1 = np.arange(len(adata))
+        corr_df = pd.DataFrame(corr, index=idx1, columns=idx1)
+        modules = pd.Series(adata.obs[groupby].values, index=idx1)
+        return local_correlation_plot(corr_df, modules=modules, **kwargs)
+
+    idx1 = np.arange(len(adata))
+    idx2 = np.arange(len(adata2))
+    corr = _pearson_cross(adata.obsm[obsm_key], adata2.obsm[obsm_key])
+    transpose = kwargs.pop('transpose', False)
+    if transpose:
+        corr = corr.T
+        corr_df = pd.DataFrame(corr, index=idx2, columns=idx1)
+        modules = pd.Series(adata2.obs[groupby].values, index=idx2)
+        col_modules = pd.Series(adata.obs[groupby].values, index=idx1)
+    else:
+        corr_df = pd.DataFrame(corr, index=idx1, columns=idx2)
+        modules = pd.Series(adata.obs[groupby].values, index=idx1)
+        col_modules = pd.Series(adata2.obs[groupby].values, index=idx2)
+    return local_correlation_plot(corr_df, modules=modules, col_modules=col_modules, **kwargs)
+
+
 def _row_zscore(X):
     """Z-score each row; rows with zero variance are left as zeros."""
     mu = X.mean(axis=1, keepdims=True)
