@@ -44,3 +44,4 @@ from scalex.pp.celltype import (
     reorder_marker_dict_diagonal,
     diagonal_heatmap,
 )
+from scalex.io.preprocess import aggregate_data
