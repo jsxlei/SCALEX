@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-from .GenomeTrack import GenomeTrack
+from pygenometracks.tracks import GenomeTrack
 
 class GWASVariantsTrack(GenomeTrack):
     """

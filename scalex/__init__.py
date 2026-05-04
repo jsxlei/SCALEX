@@ -7,7 +7,7 @@ __email__ = "jsxlei@gmail.com"
 from .function import SCALEX, label_transfer
 from . import pp, pl, tl
 from .tl import cluster
-from .pl.plot import (
+from .pl import (
     embedding, plot_expr, plot_meta, plot_meta2,
     plot_confusion, plot_radar, plot_heatmap, dotplot,
     plot_jaccard_heatmap, plot_sankey, plot_crosstab,
