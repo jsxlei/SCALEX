@@ -31,6 +31,28 @@ or git clone and install
 SCALEX is implemented in [Pytorch](https://pytorch.org/) framework.  
 SCALEX can be run on CPU devices, and running SCALEX on GPU devices if available is recommended.   
 
+## Plot gallery
+
+A snapshot of the plotting functions in `scalex.pl`. See [docs/gallery/README.md](docs/gallery/README.md) for the full gallery with code snippets, and run `python docs/gallery/build_gallery.py` to regenerate the figures from PBMC3k.
+
+<table>
+<tr>
+<td align="center"><a href="docs/gallery/README.md#embedding--umappca-scatter"><img src="docs/gallery/_assets/embedding.png" width="180"/><br/><code>embedding</code></a></td>
+<td align="center"><a href="docs/gallery/README.md#plot_meta2--stacked-composition-bar"><img src="docs/gallery/_assets/plot_meta2.png" width="180"/><br/><code>plot_meta2</code></a></td>
+<td align="center"><a href="docs/gallery/README.md#plot_corr_clustermap--cell-type-correlation-clustermap"><img src="docs/gallery/_assets/plot_corr_clustermap.png" width="180"/><br/><code>plot_corr_clustermap</code></a></td>
+</tr>
+<tr>
+<td align="center"><a href="docs/gallery/README.md#dotplot--marker-dotplot"><img src="docs/gallery/_assets/dotplot_markers.png" width="180"/><br/><code>dotplot</code></a></td>
+<td align="center"><a href="docs/gallery/README.md#plot_sankey--alluvial-flow"><img src="docs/gallery/_assets/plot_sankey.png" width="180"/><br/><code>plot_sankey</code></a></td>
+<td align="center"><a href="docs/gallery/README.md#plot_jaccard_heatmap--overlap-matrix"><img src="docs/gallery/_assets/plot_jaccard_heatmap.png" width="180"/><br/><code>plot_jaccard_heatmap</code></a></td>
+</tr>
+<tr>
+<td align="center"><a href="docs/gallery/README.md#plot_corr--pairwise-correlation-heatmap"><img src="docs/gallery/_assets/plot_corr.png" width="180"/><br/><code>plot_corr</code></a></td>
+<td align="center"><a href="docs/gallery/README.md#compose_tracks--trackspec--multi-panel-locus-view"><b>compose_tracks</b><br/><sub>multi-panel<br/>locus view</sub></a></td>
+<td align="center"><a href="docs/gallery/README.md#plot_variant_effect-scalexplvariant"><b>plot_variant_effect</b><br/><sub>ChromBPNet<br/>SHAP track</sub></a></td>
+</tr>
+</table>
+
 ## Getting started
 
 SCALEX can both used under command line and API function in jupyter notebook   
