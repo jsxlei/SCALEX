@@ -5,7 +5,7 @@ requires = ["hatchling"]
 [project]
 name = "scalex"
 authors = [{name = "Lei Xiong"}]
-version = "1.0.6"
+version = "1.2.0.dev0"
 readme = "README.md"
 requires-python = ">=3.7"
 description = "Online single-cell data integration through projecting heterogeneous datasets into a common cell-embedding space"
@@ -31,7 +31,11 @@ dependencies = [
     "leidenalg>=0.8.3",
     "gseapy",
     "pyranges",
+    "pyyaml",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["scalex"]
 
 [project.scripts]
 SCALEX = "scalex.function:main"
