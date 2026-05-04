@@ -14,7 +14,7 @@ def annotate_genes(gene_var, gtf=None, by='gene_name'):
     if isinstance(gtf, str):
         gtf = get_gtf(gtf, drop_by=by).df
     elif isinstance(gtf, pr.PyRanges):
-        gtf = gtf.df
+        gtf = gtf.df.drop_duplicates(subset=[by], keep='first')
 
     if 'gene_ids' in gene_var.columns:
         gene_var.index = gene_var['gene_ids']
