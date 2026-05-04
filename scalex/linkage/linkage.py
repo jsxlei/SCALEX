@@ -434,6 +434,7 @@ def compute_peak2gene_links(
     var_cutoff_atac=0.25,
     var_cutoff_rna=0.25,
     window=250_000,
+    gtf=None,
 ):
     """
     Compute peak-to-gene correlation links from cell-type averaged matrices.
@@ -472,6 +473,12 @@ def compute_peak2gene_links(
         Variance quantile cutoff for genes (0–1). Default 0.25.
     window : int
         Genomic window around gene TSS to search for peaks (bp). Default 250 000.
+    gtf : pr.PyRanges | str | None
+        GTF source for TSS annotation. Pass the result of
+        ``read_gencode_transcripts()`` to use MANE_Select canonical TSS
+        coordinates (recommended when loop anchor coordinates come from that
+        source). If None, falls back to the default GTF path used by
+        ``format_rna`` (~/.scalex/gencode.v38.annotation.gtf.gz).
 
     Returns
     -------
@@ -491,7 +498,8 @@ def compute_peak2gene_links(
 
     # ── 1. Add genomic coordinates to .var ───────────────────────────────
     atac_avg = format_atac(atac_avg.copy())
-    rna_avg  = format_rna(rna_avg.copy())
+    fmt_kwargs = {'gtf': gtf} if gtf is not None else {}
+    rna_avg  = format_rna(rna_avg.copy(), **fmt_kwargs)
 
     # ── 2. Align cell-type order between ATAC and RNA ─────────────────────
     common_cts = list(dict.fromkeys(
@@ -565,7 +573,8 @@ def compute_peak2gene_links(
     genes_kept = rna_filt.var_names[gene_idx[keep]]
     corr_kept  = corr[keep]
 
-    links_df = pd.DataFrame({'peak': peaks_kept, 'gene': genes_kept, 'correlation': corr_kept})
+    tss_kept = rna_filt.var.iloc[gene_idx[keep]]['tss'].values
+    links_df = pd.DataFrame({'peak': peaks_kept, 'gene': genes_kept, 'correlation': corr_kept, 'tss': tss_kept})
 
     # ── 7. Organise by peak_dict cluster ─────────────────────────────────
     if peak_dict is None:
