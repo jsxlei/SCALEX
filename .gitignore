@@ -12,3 +12,6 @@ docs/_build/
 docs/source/api/scalex*
 __pycache__/
 /scalex/_version.py
+
+# Demo data fetched by docs/gallery/build_gallery.py
+/data/
