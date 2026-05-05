@@ -34,7 +34,7 @@ from ._dotplot import dotplot
 from ._jaccard import plot_jaccard_heatmap
 from ._sankey import plot_sankey
 from ._stackedplot import plot_crosstab, plot_crosstab_stacked
-from ._heatmap import plot_heatmap, plot_corr, local_correlation_plot, get_module_series
+from ._heatmap import plot_heatmap, plot_corr, plot_agg_heatmap, local_correlation_plot, get_module_series
 from .trackplot import (
     TrackSpec,
     compose_tracks,
@@ -53,7 +53,8 @@ __all__ = [
     "plot_expr", "plot_meta", "plot_meta2", "plot_corr_clustermap",
     "plot_confusion", "reassign_cluster_with_ref", "plot_radar",
     # heatmap
-    "plot_heatmap", "plot_corr", "local_correlation_plot", "get_module_series",
+    "plot_heatmap", "plot_corr", "plot_agg_heatmap",
+    "local_correlation_plot", "get_module_series",
     # categorical
     "dotplot", "plot_jaccard_heatmap", "plot_sankey",
     "plot_crosstab", "plot_crosstab_stacked",

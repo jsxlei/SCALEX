@@ -4,7 +4,26 @@ import numpy as np
 import pandas as pd
 import itertools
 
+import scanpy as sc
+import anndata
+
 from scalex.pl._utils import _sort_key
+
+
+def plot_agg_heatmap(adata, genes, cell_type: str = 'cell_type', **kwargs):
+    """Heatmap of per-cell-type mean expression for a gene set.
+
+    Aggregates ``adata`` (or ``adata.raw``) by ``cell_type`` (mean), wraps
+    the result back into an AnnData, and dispatches to ``sc.pl.heatmap``.
+    """
+    adata_agg = adata.raw.to_adata() if adata.raw is not None else adata
+    df = adata_agg.to_df()
+    df[cell_type] = adata_agg.obs[cell_type].values
+    df_agg = df.groupby(cell_type).mean()
+    df_ann = anndata.AnnData(df_agg)
+    df_ann.obs['groupby'] = df_agg.index
+    return sc.pl.heatmap(df_ann, genes, groupby='groupby',
+                         show_gene_labels=True, **kwargs)
 
 
 def get_module_series(topgenes): # topgenes are DataFrame with ranks as index, GEPs as columns
