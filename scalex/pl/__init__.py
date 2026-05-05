@@ -19,11 +19,13 @@ Detailed docstrings live with the implementations:
 * :mod:`scalex.pl._legacy_snapatac2` — snapatac2-style plotly QC plots
   (kept for backward compatibility; reach via this submodule directly).
 """
-from .embedding import embedding, plot_subplots
+from .embedding import plot_embedding, embedding, plot_subplots
 from .correlation import (
     plot_expr,
-    plot_meta,
-    plot_meta2,
+    plot_pseudobulk_corr,
+    plot_pseudobulk_corr_cross,
+    plot_meta,           # alias: plot_pseudobulk_corr
+    plot_meta2,          # alias: plot_pseudobulk_corr_cross
     plot_corr_clustermap,
     plot_confusion,
     reassign_cluster_with_ref,
@@ -48,9 +50,12 @@ from .trackplot import (
 
 __all__ = [
     # embedding
-    "embedding", "plot_subplots",
+    "plot_embedding", "embedding", "plot_subplots",
     # meta / correlation
-    "plot_expr", "plot_meta", "plot_meta2", "plot_corr_clustermap",
+    "plot_expr",
+    "plot_pseudobulk_corr", "plot_pseudobulk_corr_cross",
+    "plot_meta", "plot_meta2",  # legacy aliases
+    "plot_corr_clustermap",
     "plot_confusion", "reassign_cluster_with_ref", "plot_radar",
     # heatmap
     "plot_heatmap", "plot_corr", "plot_agg_heatmap",

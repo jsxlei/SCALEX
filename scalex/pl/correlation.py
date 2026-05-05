@@ -107,7 +107,7 @@ def _render_heatmap(fig, ax, corr_ord, row_obs, col_obs,
               loc='upper left', frameon=False, fontsize=fontsize)
 
 
-def plot_meta(
+def plot_pseudobulk_corr(
     adata,
     use_rep: str = 'latent',
     color: str = 'celltype',
@@ -190,7 +190,7 @@ def plot_meta(
         plt.show()
 
 
-def plot_meta2(
+def plot_pseudobulk_corr_cross(
     adata,
     use_rep: str = 'latent',
     color: str = 'celltype',
@@ -620,3 +620,8 @@ def plot_radar(df, save=None, vmax: float = 1) -> None:
         plt.savefig(save, bbox_inches='tight')
     else:
         plt.show()
+
+
+# Backward-compatible aliases for the original function names.
+plot_meta = plot_pseudobulk_corr
+plot_meta2 = plot_pseudobulk_corr_cross

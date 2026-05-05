@@ -39,7 +39,7 @@ def _subsample(indices, obs_sub, color: str, max_cells_per_type: int, rng) -> np
     return np.sort(np.concatenate(keep))
 
 
-def embedding(
+def plot_embedding(
     adata,
     color: str = 'cell_type',
     color_map=None,
@@ -193,6 +193,10 @@ def embedding(
         plt.savefig(save, bbox_inches='tight')
     if show:
         plt.show()
+
+
+# Backward-compatible alias for the original name.
+embedding = plot_embedding
 
 
 def plot_subplots(n_panels: int, ncols: int = 3):

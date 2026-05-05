@@ -98,13 +98,97 @@ def _proportional_figsize(n_rows, n_cols, size, max_ratio=1.5):
     return (size * ratio, size)
 
 
+def _spread_label_positions(label_pos, n_total, min_gap):
+    """Push labels apart so text doesn't overlap, but only as far as necessary."""
+    label_pos = np.asarray(label_pos, dtype=float).copy()
+    if label_pos.size == 0:
+        return label_pos
+    label_pos.sort()
+    for i in range(1, len(label_pos)):
+        label_pos[i] = max(label_pos[i], label_pos[i - 1] + min_gap)
+    for i in range(len(label_pos) - 2, -1, -1):
+        label_pos[i] = min(label_pos[i], label_pos[i + 1] - min_gap)
+    return np.clip(label_pos, 0, n_total - 1)
+
+
+def _add_label_sticks(fig, anchor_pos, items, item_to_pos, n_total,
+                      side: str, fontsize: float = 6, width_frac: float = 0.07):
+    """Draw leader-line "stickout" labels next to a heatmap.
+
+    Parameters
+    ----------
+    anchor_pos
+        ``Bbox`` of the axes the sticks anchor to (heatmap or row_colors strip).
+    items
+        Ordered list of labels to annotate (in input order).
+    item_to_pos
+        Mapping ``label -> integer row/column index in the displayed matrix``.
+    n_total
+        Total number of rows (for ``side='left'``) or columns (``side='bottom'``)
+        in the displayed matrix.
+    side
+        ``'left'`` for row labels, ``'bottom'`` for column labels.
+    """
+    items = [g for g in items if g in item_to_pos]
+    if not items:
+        return
+    items.sort(key=lambda g: item_to_pos[g])
+
+    if side == 'left':
+        min_gap = max(1.0, n_total / 35)
+        gys = np.array([item_to_pos[g] for g in items], dtype=float)
+        lys = _spread_label_positions(gys, n_total, min_gap)
+        ax_ticks = fig.add_axes([
+            anchor_pos.x0 - width_frac, anchor_pos.y0,
+            width_frac, anchor_pos.height,
+        ])
+        ax_ticks.set_xlim(0, 1)
+        ax_ticks.set_ylim(n_total - 0.5, -0.5)
+        ax_ticks.axis('off')
+        kw = dict(color='black', lw=0.5, clip_on=False)
+        for g, ly, gy in zip(items, lys, gys):
+            ax_ticks.plot([0.00, 0.20], [ly, ly], **kw)
+            ax_ticks.plot([0.20, 0.90], [ly, gy], **kw)
+            ax_ticks.plot([0.90, 1.00], [gy, gy], **kw)
+            ax_ticks.text(-0.02, ly, str(g), ha='right', va='center',
+                          fontsize=fontsize, clip_on=False)
+        return ax_ticks
+
+    # side == 'bottom'
+    min_gap = max(1.0, n_total / 35)
+    gxs = np.array([item_to_pos[g] for g in items], dtype=float)
+    lxs = _spread_label_positions(gxs, n_total, min_gap)
+    ax_ticks = fig.add_axes([
+        anchor_pos.x0, anchor_pos.y0 - width_frac,
+        anchor_pos.width, width_frac,
+    ])
+    ax_ticks.set_xlim(-0.5, n_total - 0.5)
+    ax_ticks.set_ylim(0, 1)
+    ax_ticks.axis('off')
+    kw = dict(color='black', lw=0.5, clip_on=False)
+    for g, lx, gx in zip(items, lxs, gxs):
+        ax_ticks.plot([gx, gx], [1.00, 0.90], **kw)
+        ax_ticks.plot([gx, lx], [0.90, 0.20], **kw)
+        ax_ticks.plot([lx, lx], [0.20, 0.00], **kw)
+        ax_ticks.text(lx, -0.02, str(g), ha='right', va='top',
+                      rotation=45, fontsize=fontsize, clip_on=False)
+    return ax_ticks
+
+
 def local_correlation_plot(
             local_correlation_z, modules, linkage=None,
             col_modules=None, order=None,
             mod_cmap='tab10', vmin=-1, vmax=1, color_map=None,
             z_cmap='RdBu_r', yticklabels=False, save=False,
             cluster=True, size=10, square=True,
+            row_label_ticks=None, col_label_ticks=None,
+            label_fontsize: float = 6,
 ):
+    # Capture original labels so users can address rows/cols by name (gene
+    # names, cell ids, ...) even though we reindex internally.
+    orig_row_labels = list(local_correlation_z.index)
+    orig_col_labels = list(local_correlation_z.columns)
+
     # Normalise to positional RangeIndex throughout to avoid MultiIndex/Categorical issues
     n_rows = len(local_correlation_z)
     n_cols = local_correlation_z.shape[1]
@@ -112,6 +196,9 @@ def local_correlation_plot(
     col_idx = np.arange(n_cols)
     local_correlation_z = pd.DataFrame(local_correlation_z.values, index=row_idx, columns=col_idx)
     modules_aligned = _to_flat_series(modules, row_idx)
+    # Track the row/col reordering applied before clustermap.
+    row_pre_order = np.arange(n_rows)
+    col_pre_order = np.arange(n_cols)
 
     if not cluster:
         if order is not None:
@@ -126,12 +213,15 @@ def local_correlation_plot(
                 index=row_idx, columns=col_idx,
             )
             modules_aligned = _to_flat_series(modules_aligned.iloc[sorted_order], row_idx)
+            row_pre_order = np.asarray(sorted_order)
+            col_pre_order = np.asarray(sorted_order)
         else:
             local_correlation_z = pd.DataFrame(
                 local_correlation_z.values[sorted_order, :],
                 index=row_idx, columns=col_idx,
             )
             modules_aligned = _to_flat_series(modules_aligned.iloc[sorted_order], row_idx)
+            row_pre_order = np.asarray(sorted_order)
 
     module_color_lookup = _build_color_lookup(modules_aligned, mod_cmap, color_map)
     row_colors_series = pd.Series([module_color_lookup[v] for v in modules_aligned], index=modules_aligned.index)
@@ -159,6 +249,7 @@ def local_correlation_plot(
                 index=row_idx, columns=col_idx,
             )
             col_modules_aligned = _to_flat_series(col_modules_aligned.iloc[col_sorted_order], col_idx)
+            col_pre_order = np.asarray(col_sorted_order)
         col_color_lookup = _build_color_lookup(col_modules_aligned, mod_cmap, color_map)
         col_colors_series = pd.Series([col_color_lookup[v] for v in col_modules_aligned], index=col_modules_aligned.index)
         col_colors_series.name = "Cols"
@@ -189,6 +280,27 @@ def local_correlation_plot(
     if col_modules is not None:
         _add_col_labels(cm, col_modules_aligned)
 
+    # Optional stickout labels for specific rows/columns (gene names, cell IDs, ...)
+    if row_label_ticks:
+        post_idx = (cm.dendrogram_row.reordered_ind
+                    if cm.dendrogram_row is not None else np.arange(n_rows))
+        # final row in heatmap = orig_row_labels[row_pre_order[post_idx]]
+        final_to_orig = [orig_row_labels[row_pre_order[i]] for i in post_idx]
+        item_to_pos = {lbl: r for r, lbl in enumerate(final_to_orig)}
+        anchor = (cm.ax_row_colors.get_position()
+                  if cm.ax_row_colors is not None else cm.ax_heatmap.get_position())
+        _add_label_sticks(fig, anchor, list(row_label_ticks), item_to_pos,
+                          n_total=n_rows, side='left', fontsize=label_fontsize)
+
+    if col_label_ticks:
+        post_idx = (cm.dendrogram_col.reordered_ind
+                    if cm.dendrogram_col is not None else np.arange(n_cols))
+        final_to_orig = [orig_col_labels[col_pre_order[i]] for i in post_idx]
+        item_to_pos = {lbl: c for c, lbl in enumerate(final_to_orig)}
+        anchor = cm.ax_heatmap.get_position()
+        _add_label_sticks(fig, anchor, list(col_label_ticks), item_to_pos,
+                          n_total=n_cols, side='bottom', fontsize=label_fontsize)
+
     if cm.cax:
         cm.cax.grid(False)
         # Reposition colorbar to bottom-right corner of the figure
@@ -216,6 +328,7 @@ def local_correlation_plot(
 
 
 def _subsample_by_group(adata, groupby, n=50):
+    """Stratified subsample. ``n`` as int = max per group; as float = fraction."""
     def _n_for_group(g):
         k = max(1, round(len(g) * n)) if isinstance(n, float) else n
         return g.sample(min(len(g), k))
@@ -234,8 +347,7 @@ def _pearson_corr(X):
     X_c = X - X.mean(axis=1, keepdims=True)
     norms = np.linalg.norm(X_c, axis=1, keepdims=True)
     norms[norms == 0] = 1.0
-    X_n = X_c / norms
-    return X_n @ X_n.T
+    return (X_c / norms) @ (X_c / norms).T
 
 
 def _pearson_cross(A, B):
@@ -249,116 +361,118 @@ def _pearson_cross(A, B):
     return A_n @ B_n.T
 
 
-def plot_corr(
-        adata, adata2=None, groupby='cell_type', obsm_key='latent',
-        batch=None, subsample=False, subsample_n=50, **kwargs
-):
-    if batch is not None:
-        batches = adata.obs[batch].unique()
-        if len(batches) != 2:
-            raise ValueError(f"batch column '{batch}' must have exactly 2 unique values, got {list(batches)}")
-        adata, adata2 = adata[adata.obs[batch] == batches[0]], adata[adata.obs[batch] == batches[1]]
+def _split_by_batch(adata, batch):
+    """Split ``adata`` into two views using a 2-value categorical column."""
+    batches = adata.obs[batch].unique()
+    if len(batches) != 2:
+        raise ValueError(
+            f"batch column '{batch}' must have exactly 2 unique values, "
+            f"got {list(batches)}"
+        )
+    return (adata[adata.obs[batch] == batches[0]],
+            adata[adata.obs[batch] == batches[1]])
 
+
+def _build_corr_df(adata, adata2, groupby, obsm_key, transpose=False):
+    """Compute the correlation matrix and aligned module Series.
+
+    Returns
+    -------
+    corr_df : pd.DataFrame
+        Pearson correlation matrix (positional integer index/columns).
+    modules : pd.Series
+        Row labels (groupby values), aligned with ``corr_df.index``.
+    col_modules : pd.Series | None
+        Column labels for cross-correlation; ``None`` when ``adata2`` is None.
+    """
+    if adata2 is None:
+        idx = np.arange(len(adata))
+        corr_df = pd.DataFrame(_pearson_corr(adata.obsm[obsm_key]), index=idx, columns=idx)
+        modules = pd.Series(adata.obs[groupby].values, index=idx)
+        return corr_df, modules, None
+
+    idx1 = np.arange(len(adata))
+    idx2 = np.arange(len(adata2))
+    corr = _pearson_cross(adata.obsm[obsm_key], adata2.obsm[obsm_key])
+    if transpose:
+        corr = corr.T
+        return (pd.DataFrame(corr, index=idx2, columns=idx1),
+                pd.Series(adata2.obs[groupby].values, index=idx2),
+                pd.Series(adata.obs[groupby].values, index=idx1))
+    return (pd.DataFrame(corr, index=idx1, columns=idx2),
+            pd.Series(adata.obs[groupby].values, index=idx1),
+            pd.Series(adata2.obs[groupby].values, index=idx2))
+
+
+def plot_corr(
+    adata,
+    adata2=None,
+    groupby: str = 'cell_type',
+    obsm_key: str = 'latent',
+    batch: str | None = None,
+    subsample: bool = False,
+    subsample_n=50,
+    transpose: bool = False,
+    **kwargs,
+):
+    """Cell–cell correlation heatmap with module-coloured side strips.
+
+    Computes the Pearson correlation between cells using ``adata.obsm[obsm_key]``
+    and dispatches to :func:`local_correlation_plot`. Two modes:
+
+    1. **Within-dataset** (``adata2`` is None and ``batch`` is None): N×N
+       correlation; rows/columns share the same module labels.
+    2. **Cross-dataset**: pass ``adata2`` directly, or pass ``batch=<obs col>``
+       to split a single AnnData into two views.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Primary dataset (rows of the correlation matrix).
+    adata2 : AnnData, optional
+        Secondary dataset for cross-correlation (columns).
+    groupby : str
+        Column in ``.obs`` that provides module / cell-type labels for the
+        side colour strips.
+    obsm_key : str
+        Key in ``.obsm`` holding the embedding used for the correlation.
+    batch : str, optional
+        Two-value column in ``adata.obs``; when set, ``adata`` is split into
+        two views and treated as a cross-correlation.
+    subsample : bool
+        If True, stratified-subsample per ``groupby`` before computing the
+        correlation (useful for visual clarity on large datasets).
+    subsample_n : int | float
+        Cells per group when subsampling (int = max; float = fraction).
+    transpose : bool
+        Cross-correlation only — swap rows and columns of the matrix.
+    **kwargs
+        Forwarded to :func:`local_correlation_plot`. Notable options:
+
+        - ``row_label_ticks`` / ``col_label_ticks`` — list of row/column
+          values (gene names, cell ids, or positional indices) to highlight
+          with leader-line "stickout" labels, like :func:`plot_heatmap`.
+        - ``label_fontsize`` — font size of the stickout labels.
+        - ``cluster``, ``order``, ``cmap``, ``vmin``, ``vmax`` etc.
+
+    Returns
+    -------
+    seaborn.matrix.ClusterGrid
+    """
+    if batch is not None:
+        adata, adata2 = _split_by_batch(adata, batch)
     if subsample:
         adata = _subsample_by_group(adata, groupby, subsample_n)
         if adata2 is not None:
             adata2 = _subsample_by_group(adata2, groupby, subsample_n)
 
-    # Use positional integer index to avoid any MultiIndex issues from AnnData views
-    if adata2 is None:
-        corr = _pearson_corr(adata.obsm[obsm_key])
-        idx1 = np.arange(len(adata))
-        corr_df = pd.DataFrame(corr, index=idx1, columns=idx1)
-        modules = pd.Series(adata.obs[groupby].values, index=idx1)
-        return local_correlation_plot(corr_df, modules=modules, **kwargs)
-
-    # Cross-correlation: N x M (adata rows vs adata2 rows)
-    idx1 = np.arange(len(adata))
-    idx2 = np.arange(len(adata2))
-    corr = _pearson_cross(adata.obsm[obsm_key], adata2.obsm[obsm_key])
-    transpose = kwargs.pop('transpose', False)
-    if transpose:
-        corr = corr.T
-        corr_df = pd.DataFrame(corr, index=idx2, columns=idx1)
-        modules = pd.Series(adata2.obs[groupby].values, index=idx2)
-        col_modules = pd.Series(adata.obs[groupby].values, index=idx1)
-    else:
-        corr_df = pd.DataFrame(corr, index=idx1, columns=idx2)
-        modules = pd.Series(adata.obs[groupby].values, index=idx1)
-        col_modules = pd.Series(adata2.obs[groupby].values, index=idx2)
-    return local_correlation_plot(corr_df, modules=modules, col_modules=col_modules, **kwargs)
-
-
-def _subsample_by_group(adata, groupby, n=50):
-    def _n_for_group(g):
-        k = max(1, round(len(g) * n)) if isinstance(n, float) else n
-        return g.sample(min(len(g), k))
-
-    idx = (
-        adata.obs.groupby(groupby, observed=True)
-        .apply(_n_for_group)
-        .index.get_level_values(-1)
+    corr_df, modules, col_modules = _build_corr_df(
+        adata, adata2, groupby, obsm_key, transpose=transpose,
     )
-    return adata[idx]
-
-
-def _pearson_corr(X):
-    """Pearson correlation matrix between rows of X (float32, normalized matmul)."""
-    X = X.astype(np.float32)
-    X_c = X - X.mean(axis=1, keepdims=True)
-    norms = np.linalg.norm(X_c, axis=1, keepdims=True)
-    norms[norms == 0] = 1.0
-    X_n = X_c / norms
-    return X_n @ X_n.T
-
-
-def _pearson_cross(A, B):
-    """Pearson cross-correlation between rows of A and rows of B (float32)."""
-    A = A.astype(np.float32)
-    B = B.astype(np.float32)
-    A_c = A - A.mean(axis=1, keepdims=True)
-    B_c = B - B.mean(axis=1, keepdims=True)
-    A_n = A_c / (np.linalg.norm(A_c, axis=1, keepdims=True) + 1e-10)
-    B_n = B_c / (np.linalg.norm(B_c, axis=1, keepdims=True) + 1e-10)
-    return A_n @ B_n.T
-
-
-def plot_corr(
-        adata, adata2=None, groupby='cell_type', obsm_key='latent',
-        batch=None, subsample=False, subsample_n=50, **kwargs
-):
-    if batch is not None:
-        batches = adata.obs[batch].unique()
-        if len(batches) != 2:
-            raise ValueError(f"batch column '{batch}' must have exactly 2 unique values, got {list(batches)}")
-        adata, adata2 = adata[adata.obs[batch] == batches[0]], adata[adata.obs[batch] == batches[1]]
-
-    if subsample:
-        adata = _subsample_by_group(adata, groupby, subsample_n)
-        if adata2 is not None:
-            adata2 = _subsample_by_group(adata2, groupby, subsample_n)
-
-    if adata2 is None:
-        corr = _pearson_corr(adata.obsm[obsm_key])
-        idx1 = np.arange(len(adata))
-        corr_df = pd.DataFrame(corr, index=idx1, columns=idx1)
-        modules = pd.Series(adata.obs[groupby].values, index=idx1)
+    if col_modules is None:
         return local_correlation_plot(corr_df, modules=modules, **kwargs)
-
-    idx1 = np.arange(len(adata))
-    idx2 = np.arange(len(adata2))
-    corr = _pearson_cross(adata.obsm[obsm_key], adata2.obsm[obsm_key])
-    transpose = kwargs.pop('transpose', False)
-    if transpose:
-        corr = corr.T
-        corr_df = pd.DataFrame(corr, index=idx2, columns=idx1)
-        modules = pd.Series(adata2.obs[groupby].values, index=idx2)
-        col_modules = pd.Series(adata.obs[groupby].values, index=idx1)
-    else:
-        corr_df = pd.DataFrame(corr, index=idx1, columns=idx2)
-        modules = pd.Series(adata.obs[groupby].values, index=idx1)
-        col_modules = pd.Series(adata2.obs[groupby].values, index=idx2)
-    return local_correlation_plot(corr_df, modules=modules, col_modules=col_modules, **kwargs)
+    return local_correlation_plot(corr_df, modules=modules,
+                                  col_modules=col_modules, **kwargs)
 
 
 def _row_zscore(X):
