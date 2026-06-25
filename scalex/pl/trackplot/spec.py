@@ -67,6 +67,7 @@ import seaborn as sns
 import pysam
 import logomaker
 from matplotlib.ticker import FuncFormatter
+from matplotlib.patches import Rectangle
 
 
 def trackplot_calculate_segment_height(data):
@@ -112,6 +113,66 @@ def trackplot_calculate_segment_height(data):
         used_positions.append((best_y, current_start, current_end))
 
     return y_pos
+
+
+def trackplot_pack_gene_levels(starts, ends, front_pad=0):
+    """Greedy interval packing for gene rows, reserving a label front-pad.
+
+    Sort genes by descending span, then place each on the lowest level whose
+    occupied ranges don't overlap ``[start - front_pad, end]``. The front-pad
+    reserves room for the left-edge label so labels on the same level don't
+    collide with the neighbouring gene. Mirrors the layout used by
+    ``alphagenome``-style transcript annotations. Returns a list of integer
+    levels aligned with the input order.
+    """
+    n = len(starts)
+    order = sorted(range(n), key=lambda i: -(ends[i] - starts[i]))
+    levels = []  # list of lists of (start, end) ranges, one per level
+    out = [0] * n
+    for i in order:
+        lo, hi = starts[i] - front_pad, ends[i]
+        placed = False
+        for lvl, ranges in enumerate(levels):
+            if all(hi <= s or lo >= e for s, e in ranges):
+                ranges.append((lo, hi))
+                out[i] = lvl
+                placed = True
+                break
+        if not placed:
+            levels.append([(lo, hi)])
+            out[i] = len(levels) - 1
+    return out
+
+
+# Fraction of a loop/arc panel that the tallest arc occupies. Lower = flatter
+# arcs. Override per-track via ``style={"arc_height": ...}``.
+_DEFAULT_ARC_FRACTION = 0.5
+
+# Number of points used to draw each arc; higher = visually smoother curves.
+_ARC_RESOLUTION = 100
+
+
+def _sin_arc(x_left: float, x_right: float, height: float, n: int = _ARC_RESOLUTION):
+    """Return (x, y) arrays for a half-sine arc spanning ``[x_left, x_right]``."""
+    x = np.linspace(x_left, x_right, n)
+    y = height * np.sin(np.pi * (x - x_left) / (x_right - x_left))
+    return x, y
+
+
+def _smooth_signal(values: np.ndarray, sigma: float) -> np.ndarray:
+    """Gaussian-smooth a 1-D signal in-place-safe fashion (no SciPy dependency).
+
+    ``sigma`` is expressed in bins. Returns *values* unchanged when smoothing
+    is disabled (``sigma`` falsy / non-positive) or the signal is empty.
+    """
+    values = np.asarray(values, dtype=float)
+    if not sigma or sigma <= 0 or values.size == 0:
+        return values
+    radius = int(max(1, round(sigma * 3)))
+    offsets = np.arange(-radius, radius + 1)
+    kernel = np.exp(-(offsets ** 2) / (2 * sigma ** 2))
+    kernel /= kernel.sum()
+    return np.convolve(values, kernel, mode="same")
 
 
 # ============================================================
@@ -205,6 +266,7 @@ class TrackContext:
     global_scglue_score_range: tuple = None  # (min_score, max_score) across all scglue links
     global_expr_max: float = None
     expr_axes_map: dict = dataclasses.field(default_factory=dict)  # id(spec) -> expr_ax
+    smooth_sigma: float = 0.0  # gaussian smoothing (in bins) applied to coverage/bigwig signals
 
 
 # Registry of builder functions: track_type → callable(spec, ax, ctx)
@@ -219,16 +281,30 @@ def register_track(name: str) -> Callable:
     return decorator
 
 
+# Typography / linework — centralised so every panel matches (publication-grade,
+# consistent across track types). Override per-track via TrackSpec.style where noted.
+_LABEL_FS = 9     # left-edge track row labels + scalebar region/scale text
+_AXIS_FS  = 8     # genomic-position axis tick labels
+_TICK_FS  = 6     # signal range numbers (ATAC / RNA-seq range bars)
+_SPINE_LW = 0.8   # visible-spine / bottom-axis line width
+
+
+def _row_label(ax: plt.Axes, text: str, fontsize: float = _LABEL_FS) -> None:
+    """Draw a track's left-edge row label, identically across all track types."""
+    ax.text(-0.005, 0.5, text, transform=ax.transAxes,
+            va="center", ha="right", fontsize=fontsize)
+
+
 _DEFAULT_HEIGHTS: dict = {
     "scalebar":   0.1,
     "coverage":   0.5,
     "gene":       1.0,
     "annotation": 1.5,
-    "loop":       .8,
+    "loop":       .45,
     "shap":       1.0,
     "bigwig":     .5,
-    "sce2g":      .8,
-    "scglue":     .8,
+    "sce2g":      .45,
+    "scglue":     .45,
 }
 
 
@@ -339,14 +415,14 @@ def _build_scalebar(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     chrom, start, end = ctx.chrom, ctx.start, ctx.end
     width = end - start
     bar_width = _nice_scale(width * 0.1)
-    font_pt = (spec.style or {}).get("font_pt", 11)
+    font_pt = (spec.style or {}).get("font_pt", _LABEL_FS)
 
     if bar_width >= 1_000_000:
-        bar_label = f"{bar_width / 1_000_000:.0f}M"
+        bar_label = f"{bar_width / 1_000_000:.0f} Mb"
     elif bar_width >= 1_000:
-        bar_label = f"{bar_width / 1_000:.0f}k"
+        bar_label = f"{bar_width / 1_000:.0f} kb"
     else:
-        bar_label = f"{bar_width:.0f}"
+        bar_label = f"{bar_width:.0f} bp"
 
     ax.text(start, 0, f"{chrom}: {start:,} - {end:,}", fontsize=font_pt, ha="left", va="center")
 
@@ -380,20 +456,21 @@ def _build_coverage(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         return
 
     cell_type = spec.cell_type
-    group_data = data[data["group"] == cell_type]
+    group_data = data[data["group"] == cell_type].sort_values("pos")
 
     eff_colors = spec.colors if spec.colors is not None else ctx.colors
     color = eff_colors.get(cell_type, "steelblue") if eff_colors else "steelblue"
 
     if not group_data.empty:
-        ax.fill_between(group_data["pos"], group_data["normalized_insertions"],
-                        color=color, linewidth=0)
+        sigma = (spec.style or {}).get("smooth", ctx.smooth_sigma)
+        ys = _smooth_signal(group_data["normalized_insertions"].to_numpy(), sigma)
+        ax.fill_between(group_data["pos"].to_numpy(), ys, color=color, linewidth=0)
 
     ymax = ctx.global_coverage_max or data["normalized_insertions"].max()
     ax.set_ylim(0, ymax * 1.1)
 
     label = spec.label or cell_type or ""
-    ax.text(-0.005, 0.0, label, transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, label)
 
     if spec.expr is not None and ctx.global_expr_max:
         expr_ax = getattr(spec, '_expr_ax', None) or ctx.expr_axes_map.get(id(spec))
@@ -409,7 +486,7 @@ def _build_coverage(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(True)
-        spine.set_linewidth(0.8)
+        spine.set_linewidth(_SPINE_LW)
 
 
 @register_track("gene")
@@ -417,9 +494,19 @@ def _build_gene(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     """Render consolidated gene/transcript models into *ax*."""
     transcripts_data = spec.data
     chrom, start, end = ctx.chrom, ctx.start, ctx.end
-    exon_size  = (spec.style or {}).get("exon_size", 7.0)
-    gene_size  = (spec.style or {}).get("gene_size", 0.3)
-    label_size = (spec.style or {}).get("label_size", 11 * 0.8)
+    style = spec.style or {}
+    label_size = style.get("label_size", _LABEL_FS)
+    line_color = style.get("line_color", "black")          # all genes (direction via chevrons)
+    deemph_color = style.get("deemph_color", "darkgrey")   # non-target genes when highlighting
+    # `gene_size` (old point-linewidth key) maps to the backbone spine width.
+    spine_lw = style.get("spine_lw", style.get("gene_size", 0.8))
+
+    params = spec.params or {}
+    highlight = params.get("highlight_genes")
+    if isinstance(highlight, str):
+        highlight = [highlight]
+    highlight = set(highlight or [])
+    highlight_color = params.get("highlight_color", "red")
 
     if hasattr(transcripts_data, "df"):
         df = transcripts_data.df
@@ -430,10 +517,10 @@ def _build_gene(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         (df["Chromosome"] == chrom) &
         (df["End"] > start) &
         (df["Start"] < end) &
-        (df["Feature"].isin(["transcript", "exon"]))
+        (df["Feature"].isin(["transcript", "exon", "CDS"]))
     ].copy()
 
-    ax.text(-0.005, 0.0, spec.label or "Genes", transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, spec.label or "Genes")
 
     if df.empty:
         ax.set_yticks([])
@@ -443,6 +530,7 @@ def _build_gene(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     for gene_name in df["gene_name"].unique():
         gene_data = df[df["gene_name"] == gene_name]
         exons = gene_data[gene_data["Feature"] == "exon"].copy()
+        cds = gene_data[gene_data["Feature"] == "CDS"].copy()
         gene_transcripts = gene_data[gene_data["Feature"] == "transcript"].copy()
 
         if len(exons) == 0:
@@ -463,6 +551,7 @@ def _build_gene(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
             "End": gene_end,
             "Strand": dominant_strand,
             "exons": exons,
+            "cds": cds,
         })
 
     if not consolidated_data:
@@ -470,23 +559,94 @@ def _build_gene(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         return
 
     consolidated_df = pd.DataFrame(consolidated_data)
-    consolidated_df["y"] = trackplot_calculate_segment_height(consolidated_df)
     consolidated_df["Start"] = consolidated_df["Start"].clip(start, end)
     consolidated_df["End"] = consolidated_df["End"].clip(start, end)
+    consolidated_df = consolidated_df.reset_index(drop=True)
 
-    for _, row in consolidated_df.iterrows():
-        color = "black" if row["Strand"] in ["+", True, 1] else "darkgrey"
-        ax.hlines(y=row["y"], xmin=row["Start"], xmax=row["End"],
-                  linewidth=gene_size, color=color)
+    # WashU-style box heights: tall coding (CDS) boxes, half-height UTR boxes.
+    cds_height = style.get("cds_height", style.get("exon_height", 0.16))
+    utr_height = style.get("utr_height", cds_height * 0.5)
+    width = max(1, end - start)
+    arrow_spacing = max(int(0.035 * width), 1)
+    # Minimum on-screen exon width so lone small exons (e.g. a gene's first
+    # exon) stay visible at wide zoom — a window fraction keeps it a roughly
+    # constant pixel size. Standard UCSC/WashU behaviour.
+    min_w = max(1.0, style.get("min_exon_frac", 0.002) * width)
+
+    # Pack genes onto rows so neither the bodies nor their centred labels
+    # overlap. Each label is centred on the gene; estimate its half-width at
+    # ~0.6% of the window per character and reserve that on both sides.
+    gstart = consolidated_df["Start"].to_numpy()
+    gend = consolidated_df["End"].to_numpy()
+    centers = (gstart + gend) / 2
+    half_label = np.maximum(
+        consolidated_df["gene_name"].str.len().to_numpy() * (0.006 * width),
+        0.01 * width,
+    )
+    lo = np.minimum(gstart, centers - half_label)
+    hi = np.maximum(gend, centers + half_label)
+    levels = trackplot_pack_gene_levels(lo, hi, front_pad=0)
+    n_levels = max(levels) + 1
+
+    for i, row in consolidated_df.iterrows():
+        y = n_levels - 1 - levels[i]     # top packing level drawn on top
+        yc = y + 0.45                    # gene-body centerline within the row
+        is_target = row["gene_name"] in highlight
+        is_plus = row["Strand"] in ["+", True, 1]
+        # Single colour for all genes; grey only to de-emphasise non-targets when
+        # a highlight set is active. Strand is conveyed by the chevrons, not colour.
+        if is_target:
+            color = highlight_color
+        elif highlight:
+            color = deemph_color
+        else:
+            color = line_color
+
+        # Backbone centerline.
+        ax.plot([row["Start"], row["End"]], [yc, yc],
+                color=color, lw=1.4 if is_target else spine_lw, zorder=1)
+        # Open directional chevrons (">" / "<") along the backbone for strand.
+        chevron = ">" if is_plus else "<"
+        xs = np.arange(row["Start"] + arrow_spacing / 2, row["End"], arrow_spacing)
+        for cx in xs:
+            ax.text(cx, yc, chevron, ha="center", va="center",
+                    fontsize=label_size * 0.85, color=color, zorder=2, clip_on=True)
+        # WashU-style model: exons as boxes, with coding (CDS) regions drawn
+        # tall and UTRs half-height. Genes without CDS (non-coding) render their
+        # exons at full height. CDS boxes overlay the exon boxes so a partly
+        # coding exon shows thin UTR flanks around a thick coding core.
+        has_cds = not row["cds"].empty
+        exon_h = utr_height if has_cds else cds_height
         for _, exon in row["exons"].iterrows():
-            ax.hlines(y=row["y"], xmin=exon["Start"], xmax=exon["End"],
-                      linewidth=exon_size, color=color)
+            e_start = max(start, int(exon["Start"]))
+            e_end = min(end, int(exon["End"]))
+            if e_end <= e_start:
+                continue
+            w = max(min_w, e_end - e_start)            # keep tiny exons visible
+            x0 = (e_start + e_end) / 2 - w / 2         # widen about the exon centre
+            ax.add_patch(Rectangle(
+                (x0, yc - exon_h / 2), w, exon_h,
+                facecolor=color, edgecolor="none", zorder=3))
+        if has_cds:
+            for _, c in row["cds"].iterrows():
+                c_start = max(start, int(c["Start"]))
+                c_end = min(end, int(c["End"]))
+                if c_end <= c_start:
+                    continue
+                w = max(min_w, c_end - c_start)
+                x0 = (c_start + c_end) / 2 - w / 2
+                ax.add_patch(Rectangle(
+                    (x0, yc - cds_height / 2), w, cds_height,
+                    facecolor=color, edgecolor="none", zorder=4))
+        # Gene symbol centered above the body (strand is shown by the chevrons,
+        # so the "(+/-)" suffix is omitted to keep the label clean for print).
         label_x = (row["Start"] + row["End"]) / 2
-        ax.text(label_x, row["y"] + 0.1, row["gene_name"],
-                ha="center", va="bottom", fontsize=label_size, color="black")
+        ax.text(label_x, yc + cds_height / 2 + 0.08, row["gene_name"],
+                ha="center", va="bottom", fontsize=label_size,
+                color=color, fontstyle="italic",
+                fontweight="bold" if is_target else "normal")
 
-    max_y = consolidated_df["y"].max()
-    ax.set_ylim(-0.2, max_y + 0.5)
+    ax.set_ylim(-0.1, n_levels + 0.1)
     ax.set_yticks([])
     ax.grid(False)
 
@@ -581,6 +741,7 @@ def _build_loop(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     params = spec.params or {}
     score_column = params.get("score_column")
     curvature    = (spec.style or {}).get("curvature", 0.75)
+    arc_height   = curvature * (spec.style or {}).get("arc_height", _DEFAULT_ARC_FRACTION)
 
     if hasattr(loops, "df"):
         df = loops.df
@@ -595,10 +756,10 @@ def _build_loop(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         (loop_left  < end)
     ].copy()
 
-    ax.text(-0.005, 0.0, spec.label or "Loops", transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, spec.label or "Loops")
 
     if df.empty:
-        ax.set_ylim(0, curvature)
+        ax.set_ylim(0, arc_height * 1.05)
         ax.set_yticks([])
         return
 
@@ -614,9 +775,7 @@ def _build_loop(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         x_right = max(row["Start"], row["End"])
         if x_left == x_right:
             continue
-        x = np.linspace(x_left, x_right, 100)
-        arc_height = curvature * 0.9
-        y = arc_height * np.sin(np.pi * (x - x_left) / (x_right - x_left))
+        x, y = _sin_arc(x_left, x_right, arc_height)
         color = row.get("color", "blue") if hasattr(row, "get") else "blue"
         if score_column and score_column in df.columns and score_range:
             normalized_score = (row[score_column] - min_score) / score_range  # 0–1
@@ -625,7 +784,7 @@ def _build_loop(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
             lw = 0.5
         ax.plot(x, y, color=color, linewidth=lw)
 
-    ax.set_ylim(0, curvature)
+    ax.set_ylim(0, arc_height * 1.05)
     ax.set_yticks([])
 
 
@@ -785,13 +944,13 @@ def _build_shap(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     ax.set_ylim(ylim[0] - ypad, ylim[1] + ypad)
 
     label = spec.label or "SHAP"
-    ax.text(-0.005, 0.0, label, transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, label)
     ax.text(0.015, 0.97, f"[{ylim[0]:.3f} \u2013 {ylim[1]:.3f}]",
             transform=ax.transAxes, va="top", ha="left", fontsize=8)
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(True)
-        spine.set_linewidth(0.8)
+        spine.set_linewidth(_SPINE_LW)
 
 
 # ============================================================
@@ -920,12 +1079,12 @@ def _build_bigwig(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     ax.set_ylim(0, ymax * 1.1)
 
     label = spec.label or ""
-    ax.text(-0.005, 0.0, label, transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, label)
 
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(True)
-        spine.set_linewidth(0.8)
+        spine.set_linewidth(_SPINE_LW)
 
 
 # ============================================================
@@ -1062,6 +1221,7 @@ def _build_sce2g(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     df = ctx.sce2g_cache.get(cache_key, pd.DataFrame())
 
     curvature = (spec.style or {}).get("curvature", 0.75)
+    arc_height = curvature * (spec.style or {}).get("arc_height", _DEFAULT_ARC_FRACTION)
     color = (spec.style or {}).get("color", "steelblue")
     label = spec.label or cell_type or "scE2G"
 
@@ -1069,9 +1229,9 @@ def _build_sce2g(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         df = df[df["TargetGene"] == spec.gene]
 
     if df.empty:
-        ax.set_ylim(0, curvature)
+        ax.set_ylim(0, arc_height * 1.05)
         ax.set_yticks([])
-        ax.text(-0.005, 0.0, label, transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+        _row_label(ax, label)
         return
 
     score_range = ctx.global_sce2g_score_range
@@ -1086,9 +1246,7 @@ def _build_sce2g(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         x_right = max(row["Start"], row["End"])
         if x_left == x_right:
             continue
-        x = np.linspace(x_left, x_right, 100)
-        arc_height = curvature * 0.9
-        y = arc_height * np.sin(np.pi * (x - x_left) / (x_right - x_left))
+        x, y = _sin_arc(x_left, x_right, arc_height)
 
         score = row["score"]
         normalized = (score - s_min) / score_span
@@ -1109,13 +1267,12 @@ def _build_sce2g(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
             x_right = max(row["Start"], row["End"])
             if x_left == x_right:
                 continue
-            x = np.linspace(x_left, x_right, 100)
-            y = curvature * 0.9 * np.sin(np.pi * (x - x_left) / (x_right - x_left))
+            x, y = _sin_arc(x_left, x_right, arc_height)
             ax.plot(x, y, color=h_color, linewidth=3.0, alpha=h_alpha)
 
-    ax.set_ylim(0, curvature)
+    ax.set_ylim(0, arc_height * 1.05)
     ax.set_yticks([])
-    ax.text(-0.005, 0.0, label, transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, label)
 
 
 # ============================================================
@@ -1244,16 +1401,17 @@ def _build_scglue(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
     df = ctx.scglue_cache.get(spec.data, pd.DataFrame())
 
     curvature = (spec.style or {}).get("curvature", 0.75)
+    arc_height = curvature * (spec.style or {}).get("arc_height", _DEFAULT_ARC_FRACTION)
     color = (spec.style or {}).get("color", "steelblue")
     label = spec.label or "scGLUE"
 
     if spec.gene and "gene_name" in df.columns:
         df = df[df["gene_name"] == spec.gene]
 
-    ax.text(-0.005, 0.0, label, transform=ax.transAxes, va="bottom", ha="right", fontsize=9)
+    _row_label(ax, label)
 
     if df.empty:
-        ax.set_ylim(0, curvature)
+        ax.set_ylim(0, arc_height * 1.05)
         ax.set_yticks([])
         return
 
@@ -1269,16 +1427,42 @@ def _build_scglue(spec: TrackSpec, ax: plt.Axes, ctx: TrackContext) -> None:
         x_right = max(row["Start"], row["End"])
         if x_left == x_right:
             continue
-        x = np.linspace(x_left, x_right, 100)
-        arc_height = curvature * 0.9
-        y = arc_height * np.sin(np.pi * (x - x_left) / (x_right - x_left))
+        x, y = _sin_arc(x_left, x_right, arc_height)
         score = row["score"]
         normalized = (score - s_min) / score_span
         lw = 0.3 + normalized * 1.7  # 0.3–2.0
         ax.plot(x, y, color=color, linewidth=lw)
 
-    ax.set_ylim(0, curvature)
+    ax.set_ylim(0, arc_height * 1.05)
     ax.set_yticks([])
+
+
+# ------------------------------------------------------------------
+# Linked-enhancer extraction (coordinates only, for shading)
+# ------------------------------------------------------------------
+
+def _linked_enhancer_zones(tracks: list, ctx: TrackContext) -> list:
+    """Return unique (start, end) enhancer intervals linked to the target
+    gene(s) across all sce2g / scglue tracks — used only for shading.
+    """
+    zones = set()
+    for spec in tracks:
+        if spec.track_type == "sce2g":
+            df = ctx.sce2g_cache.get((spec.data, spec.cell_type), pd.DataFrame())
+            if not df.empty and spec.gene:
+                df = df[df["TargetGene"] == spec.gene]
+            if not df.empty and {"start", "end"}.issubset(df.columns):
+                for s, e in df[["start", "end"]].dropna().itertuples(index=False):
+                    zones.add((int(s), int(e)))
+        elif spec.track_type == "scglue":
+            df = ctx.scglue_cache.get(spec.data, pd.DataFrame())
+            if not df.empty and spec.gene and "gene_name" in df.columns:
+                df = df[df["gene_name"] == spec.gene]
+            # scglue stores only a midpoint — shade a narrow window around it
+            if not df.empty and "Start" in df.columns:
+                for p in df["Start"].dropna():
+                    zones.add((int(p) - 250, int(p) + 250))
+    return sorted(zones)
 
 
 # ------------------------------------------------------------------
@@ -1298,8 +1482,12 @@ def compose_tracks(
     save: str = None,
     dpi: int = 300,
     highlight_regions: list = None,
-    highlight_color: str = "yellow",
+    highlight_color: str = "#E69F00",  # soft colourblind-safe amber for region shading
     highlight_alpha: float = 0.3,
+    highlight_genes=None,
+    highlight_gene_color: str = "red",
+    highlight_links: bool = True,
+    smooth: float = 0.0,
     figwidth: float = 12,
     expr_col_width: float = 0.06,
 ) -> plt.Figure:
@@ -1334,9 +1522,22 @@ def compose_tracks(
         Genomic regions to shade, e.g. ``["chr3:69800000-69850000"]``.
         Each entry uses the same ``"chrN:start-end"`` format as *region*.
     highlight_color : str
-        Fill colour for all highlight zones (default ``"yellow"``).
+        Fill colour for all highlight zones (default ``"#E69F00"``, a soft amber).
     highlight_alpha : float
         Opacity of the highlight zones (default ``0.3``).
+    highlight_genes : str or list[str], optional
+        Gene name(s) to draw in ``highlight_gene_color`` on the gene track.
+        When ``None``, the target gene(s) of any sce2g/scglue track (their
+        ``gene=`` field) are highlighted automatically.
+    highlight_gene_color : str
+        Colour for highlighted genes (default ``"red"``).
+    highlight_links : bool
+        When True (default), also shade every enhancer the sce2g/scglue tracks
+        link to the target gene — the differentially-accessible regions driving
+        the gene. Uses ``highlight_color`` / ``highlight_alpha``.
+    smooth : float
+        Gaussian smoothing sigma (in bins) applied to coverage tracks. ``0``
+        disables smoothing. Per-track override via ``style={"smooth": ...}``.
 
     Returns
     -------
@@ -1397,6 +1598,25 @@ def compose_tracks(
             expanded.append(spec)
     tracks = expanded
 
+    # Resolve which genes to highlight: explicit arg, else the target gene(s)
+    # of any link track. Inject into every gene track's params (without
+    # clobbering a per-spec setting).
+    if highlight_genes is None:
+        target_genes = sorted({
+            s.gene for s in tracks
+            if s.track_type in ("sce2g", "scglue") and s.gene
+        })
+    elif isinstance(highlight_genes, str):
+        target_genes = [highlight_genes]
+    else:
+        target_genes = list(highlight_genes)
+    if target_genes:
+        for spec in tracks:
+            if spec.track_type == "gene":
+                spec.params = dict(spec.params or {})
+                spec.params.setdefault("highlight_genes", target_genes)
+                spec.params.setdefault("highlight_color", highlight_gene_color)
+
     expr_values = [s.expr for s in tracks if s.track_type == "coverage" and s.expr is not None]
     global_expr_max = max(expr_values) if expr_values else None
 
@@ -1413,6 +1633,7 @@ def compose_tracks(
         ctx.colors = dict(zip(unique_groups, palette))
 
     ctx.global_expr_max = global_expr_max
+    ctx.smooth_sigma = smooth
 
     _precompute_coverage(tracks, ctx)
     _precompute_shap(tracks, ctx)
@@ -1474,6 +1695,7 @@ def compose_tracks(
             )
         TRACK_BUILDERS[spec.track_type](spec, ax, ctx)
         ax.set_xlim(start - 0.5, end - 0.5)
+        ax.grid(False)
         if not spec.frameon:
             for spine in ax.spines.values():
                 spine.set_visible(False)
@@ -1481,29 +1703,70 @@ def compose_tracks(
     if has_expr and shared_expr_ax is not None and ctx.global_expr_max:
         max_val = ctx.global_expr_max
         for expr_ax in ctx.expr_axes_map.values():
+            expr_ax.grid(False)
             expr_ax.yaxis.tick_right()
             expr_ax.set_yticks([0, max_val])
-            expr_ax.set_yticklabels(['', ''], fontsize=6)
+            expr_ax.set_yticklabels(['', ''], fontsize=_TICK_FS)
             expr_ax.tick_params(axis='y', length=2, pad=0)
+            for side in ('top', 'bottom'):
+                expr_ax.spines[side].set_visible(False)
+            # range bar: a thin bounded right spine with 0/max ticks
             expr_ax.spines['right'].set_visible(True)
             expr_ax.spines['right'].set_linewidth(0.5)
             expr_ax.spines['right'].set_bounds(0, max_val)
-        shared_expr_ax.set_title("RNA-seq", fontsize=7, pad=2)
-        shared_expr_ax.set_yticklabels([f"{0}", f"{max_val:.2g}"], fontsize=6)
+        shared_expr_ax.set_title("Expression", fontsize=_TICK_FS + 1, pad=2)
+        shared_expr_ax.set_yticklabels([f"{0}", f"{max_val:.2g}"], fontsize=_TICK_FS)
         shared_expr_ax.tick_params(axis='y', length=2, pad=0)
 
+    # Coverage signal range — a thin bounded right-edge spine acting as a range
+    # bar; the 0/max scale value is printed beside the bar on the top track.
+    cov_axes = [ax for ax, t in zip(axes, tracks) if t.track_type == "coverage"]
+    if cov_axes and ctx.global_coverage_max:
+        cmax = ctx.global_coverage_max
+        for ax in cov_axes:
+            ax.grid(False)
+            ax.yaxis.tick_right()
+            ax.set_yticks([0, cmax])
+            ax.set_yticklabels(['', ''], fontsize=_TICK_FS)
+            ax.tick_params(axis='y', length=2, pad=0)
+            for side in ('top', 'left', 'bottom'):
+                ax.spines[side].set_visible(False)
+            # range bar on the right edge with ticks, labelled like Expression
+            ax.spines['right'].set_visible(True)
+            ax.spines['right'].set_linewidth(0.5)
+            ax.spines['right'].set_bounds(0, cmax)
+        # 0/max scale value printed once on the top coverage track.
+        cov_axes[0].set_yticklabels(['0', f'{cmax:.2g}'], fontsize=_TICK_FS)
+
+    # Shade only the explicit highlight_regions. (Auto scE2G linked-enhancer
+    # shading was removed; the `highlight_links` arg is retained as a no-op for
+    # backward compatibility with existing callers.)
+    zones = []
     if highlight_regions:
         for zone in highlight_regions:
             _, zstart, zend = re.split(r"[:-]", zone)
-            zstart, zend = int(zstart), int(zend)
-            for i, ax in enumerate(axes):
-                if tracks[i].track_type == "coverage":
-                    ax.axvspan(zstart, zend, color=highlight_color, alpha=highlight_alpha, zorder=0)
+            zones.append((int(zstart), int(zend)))
 
-    # x-axis formatting on the bottom panel only
+    for zstart, zend in zones:
+        for i, ax in enumerate(axes):
+            if tracks[i].track_type == "coverage":
+                ax.axvspan(zstart, zend, color=highlight_color,
+                           alpha=highlight_alpha, zorder=0)
+
+    # Genomic position axis on the bottom panel only. The scalebar's
+    # set_xticks([]) propagates through sharex, so restore a locator here.
+    from matplotlib.ticker import MaxNLocator
     formatter = FuncFormatter(lambda x, _: f"{int(x):,}")
-    axes[-1].xaxis.set_major_formatter(formatter)
-    axes[-1].set_xlabel("")
+    last = axes[-1]
+    last.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
+    last.xaxis.set_major_formatter(formatter)
+    last.tick_params(axis="x", which="both", bottom=True, labelbottom=True,
+                     length=3, labelsize=_AXIS_FS)
+    last.spines["bottom"].set_visible(True)
+    last.spines["bottom"].set_linewidth(_SPINE_LW)
+    last.set_xlabel("")
+    for ax in axes[:-1]:
+        ax.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
 
 
     plt.subplots_adjust(top=0.95, bottom=0.08, left=0.12, right=0.88)

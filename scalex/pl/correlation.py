@@ -10,9 +10,25 @@ from scipy.spatial.distance import pdist
 from scipy.optimize import linear_sum_assignment
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from sklearn.metrics import confusion_matrix, adjusted_rand_score, normalized_mutual_info_score, f1_score
 
 from scalex.pl.embedding import _cluster_order, _diagonal_order, _subsample
+from scalex.pl._utils import _pearson_cross
+
+
+def _whiten_low_cmap(cmap):
+    """Return a colormap like ``cmap`` but anchored at pure white at the low end.
+
+    Accepts a colormap name or a Colormap instance. Non-string inputs are
+    returned unchanged so users can pass a fully custom colormap.
+    """
+    if not isinstance(cmap, str):
+        return cmap
+    base = plt.get_cmap(cmap)
+    stops = [(1.0, 1.0, 1.0, 1.0)] + [base(t) for t in np.linspace(0.15, 1.0, 8)]
+    return mpl.colors.LinearSegmentedColormap.from_list(f'{cmap}_w', stops)
 
 
 def _get_representation(adata, use_rep: str) -> np.ndarray:
@@ -27,15 +43,6 @@ def _get_representation(adata, use_rep: str) -> np.ndarray:
 
 def _rgba(series, palette: dict) -> np.ndarray:
     return np.array([to_rgba(palette.get(str(v), '#888888')) for v in series])
-
-
-def _pearson_cross(A: np.ndarray, B: np.ndarray) -> np.ndarray:
-    """Pearson cross-correlation matrix between rows of A and rows of B."""
-    A = A - A.mean(axis=1, keepdims=True)
-    B = B - B.mean(axis=1, keepdims=True)
-    A_n = A / (np.linalg.norm(A, axis=1, keepdims=True) + 1e-10)
-    B_n = B / (np.linalg.norm(B, axis=1, keepdims=True) + 1e-10)
-    return A_n @ B_n.T
 
 
 def _add_left_strip(fig, pos, rgba, label, x_offset, bar_w, fontsize):
@@ -113,7 +120,7 @@ def plot_pseudobulk_corr(
     color: str = 'celltype',
     batch: str = 'batch',
     colors=None,
-    cmap: str = 'Blues',
+    cmap: str = 'Reds',
     vmax: float = 1,
     vmin: float = 0,
     mask: bool = True,
@@ -121,10 +128,22 @@ def plot_pseudobulk_corr(
     save=None,
     fontsize: int = 8,
 ) -> None:
-    """Plot Pearson correlation heatmap of cell-type pseudobulk representations.
+    """Pseudobulk Pearson correlation heatmap (triangular, within one dataset).
 
     One pseudobulk vector per (batch, cell-type) combination is computed;
-    the resulting matrix is clustered and displayed as a heatmap.
+    the resulting matrix is displayed as a triangular heatmap with cell-type
+    tick labels coloured by batch. Use this to check **per-cell-type
+    reproducibility** between batches in a single integrated dataset.
+
+    Examples
+    --------
+    Within-dataset reproducibility::
+
+        scalex.pl.plot_pseudobulk_corr(adata, use_rep='latent',
+                                       color='cell_type', batch='batch')
+
+    See also :func:`plot_pseudobulk_corr_cross` for an explicit two-batch
+    rectangular comparison.
 
     Parameters
     ----------
@@ -138,7 +157,7 @@ def plot_pseudobulk_corr(
         Column in ``obs`` denoting batch membership.
     colors : list | None
         Colour list for batches. Defaults to ``tab10`` palette.
-    cmap : str, default 'Blues'
+    cmap : str, default 'Reds'
         Colormap for the heatmap.
     vmax, vmin : float, default 1 and 0
         Colour scale limits.
@@ -178,7 +197,10 @@ def plot_pseudobulk_corr(
     else:
         mask_arr = False
     grid = sns.heatmap(corr, mask=mask_arr, xticklabels=name, yticklabels=name,
-                       annot=annot, cmap=cmap, square=True, cbar=True, vmin=vmin, vmax=vmax)
+                       annot=annot, cmap=_whiten_low_cmap(cmap), square=True,
+                       cbar=True, vmin=vmin, vmax=vmax,
+                       cbar_kws={'shrink': 0.25, 'aspect': 10, 'pad': -0.02,
+                                 'anchor': (1.0, 0.1)})
     [tick.set_color(c) for tick, c in zip(grid.get_xticklabels(), color_list)]
     [tick.set_color(c) for tick, c in zip(grid.get_yticklabels(), color_list)]
     plt.xticks(rotation=45, horizontalalignment='right', fontsize=fontsize)
@@ -197,8 +219,9 @@ def plot_pseudobulk_corr_cross(
     batch: str = 'batch',
     color_map=None,
     figsize=(10, 10),
-    cmap: str = 'Blues',
+    cmap: str = 'Reds',
     batches=None,
+    cell_types=None,
     annot: bool = False,
     save=None,
     cbar: bool = True,
@@ -207,7 +230,20 @@ def plot_pseudobulk_corr_cross(
     vmin: float = 0,
     vmax: float = 1,
 ) -> None:
-    """Plot cross-batch Pearson correlation between two batches.
+    """Cross-batch pseudobulk Pearson correlation heatmap (rectangular, two batches).
+
+    Builds one pseudobulk vector per cell-type per batch, then plots the
+    rectangular cross-batch correlation matrix (rows = batch 2 cell-types,
+    columns = batch 1 cell-types). Use this to compare **how cell-types in two
+    datasets / replicates correspond**.
+
+    Examples
+    --------
+    Compare two batches of one integrated dataset::
+
+        scalex.pl.plot_pseudobulk_corr_cross(adata,
+                                             color='cell_type', batch='batch',
+                                             batches=['donor1', 'donor2'])
 
     Parameters
     ----------
@@ -223,10 +259,13 @@ def plot_pseudobulk_corr_cross(
         Category-to-colour mapping for tick label colouring.
     figsize : tuple, default (10, 10)
         Figure size.
-    cmap : str, default 'Blues'
+    cmap : str, default 'Reds'
         Colormap.
     batches : list | None
         Explicit pair of batch names to compare.
+    cell_types : list | None
+        Subset of cell-types to include on both axes; preserves existing
+        categorical order. If None, uses all categories.
     annot : bool, default False
         Annotate heatmap cells.
     save : str | None
@@ -245,6 +284,9 @@ def plot_pseudobulk_corr_cross(
 
     meta, name = [], []
     adata.obs[color] = adata.obs[color].astype('category')
+    if cell_types is not None:
+        adata = adata[adata.obs[color].isin(cell_types)].copy()
+        adata.obs[color] = adata.obs[color].cat.remove_unused_categories()
     if batches is None:
         batches = np.unique(adata.obs[batch])
 
@@ -275,8 +317,22 @@ def plot_pseudobulk_corr_cross(
         corr_[np.ix_(y_ind, x_ind)] = corr
         corr = corr_
         xticklabels, yticklabels = categories, categories
-    grid = sns.heatmap(corr, xticklabels=xticklabels, yticklabels=yticklabels,
-                       annot=annot, cmap=cmap, square=True, cbar=cbar, vmin=vmin, vmax=vmax)
+    ax = plt.gca()
+    if cbar:
+        divider = make_axes_locatable(ax)
+        cbar_holder = divider.append_axes("right", size="3%", pad=0.1)
+        cbar_holder.set_axis_off()
+        cbar_ax = cbar_holder.inset_axes([0, 0, 1, 0.25])
+    else:
+        cbar_ax = None
+    grid = sns.heatmap(
+        corr, xticklabels=xticklabels, yticklabels=yticklabels,
+        annot=annot, cmap=_whiten_low_cmap(cmap), square=True,
+        cbar=cbar, cbar_ax=cbar_ax, vmin=vmin, vmax=vmax, ax=ax,
+    )
+    if cbar:
+        cbar_ax.set_ylabel('correlation', fontsize=fontsize * 0.7, rotation=270, labelpad=fontsize * 0.8)
+    plt.sca(ax)
 
     if color_map is not None:
         [tick.set_color(color_map[tick.get_text()]) for tick in grid.get_xticklabels()]
@@ -378,7 +434,7 @@ def plot_confusion(y, y_pred, save=None, cmap: str = 'Blues'):
         Predicted labels.
     save : str | None
         Path to save the figure.
-    cmap : str, default 'Blues'
+    cmap : str, default 'Reds'
         Colormap for the heatmap.
 
     Returns
@@ -428,7 +484,37 @@ def plot_corr_clustermap(
     seed: int = 0,
     transpose: bool = False,
 ):
-    """Plot a cell-cell Pearson correlation heatmap with hierarchical clustering.
+    """Cell-cell Pearson correlation heatmap with stacked cell-type + batch strips.
+
+    Renders a fixed matplotlib layout (no seaborn clustermap dendrogram) with
+    two side annotations per axis: cell-type plus, optionally, batch. Cell-types
+    can be diagonally aligned via ``cat_order`` so similar groups cluster on
+    the diagonal without running hierarchical clustering.
+
+    When to use this — and when not to
+    ----------------------------------
+    Pick :func:`plot_corr_clustermap` when you want:
+
+    * **two annotations** per axis (cell-type strip + batch strip),
+    * **diagonal cell-type alignment** without hierarchical clustering,
+    * a clean matplotlib figure to drop into a larger panel layout,
+    * a built-in ``compare=True`` cross-batch N1 × N2 matrix.
+
+    Pick :func:`scalex.pl.plot_corr` instead when you want a seaborn-style
+    clustermap with dendrograms, stickout / leader-line labels on selected
+    rows/columns, or a generic correlation matrix (gene × gene, etc.).
+
+    Examples
+    --------
+    Within-dataset cell × cell, with cell-type strip only::
+
+        scalex.pl.plot_corr_clustermap(adata, use_rep='latent', color='cell_type')
+
+    Cross-batch comparison with both batches displayed::
+
+        scalex.pl.plot_corr_clustermap(adata, color='cell_type',
+                                       batch='batch', compare=True,
+                                       cat_order=['T', 'B', 'Mono', 'NK'])
 
     Parameters
     ----------

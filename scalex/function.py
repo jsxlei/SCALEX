@@ -17,7 +17,8 @@ def SCALEX(
         batch_categories:list=None,
         profile:str='RNA',
         batch_name:str='batch',
-        min_features:int=600, 
+        no_batch:bool=False,
+        min_features:int=600,
         min_cells:int=3, 
         target_sum:int=None,
         n_top_features:int=None,
@@ -64,6 +65,9 @@ def SCALEX(
         Specify the single-cell profile, RNA or ATAC. Default: RNA.
     batch_name
         Use this annotation in obs as batches for training model. Default: 'batch'.
+    no_batch
+        If True, ignore any existing batch column and treat all cells as a single
+        batch (disables batch correction). Default: False.
     min_features
         Filtered out cells that are detected in less than min_features. Default: 600.
     min_cells
@@ -165,13 +169,14 @@ def SCALEX(
             processed=processed,
             use_layer=use_layer,
             backed=backed,
-            batch_name=batch_name, 
+            batch_name=batch_name,
             batch_key=batch_key,
+            no_batch=no_batch,
             keep_mt=keep_mt,
             log=log,
             num_workers=num_workers,
         )
-        
+
         early_stopping = EarlyStopping(patience=10, checkpoint_file=os.path.join(outdir, 'checkpoint/model.pt') if outdir else None)
         x_dim = adata.shape[1] if (use_layer == 'X' or use_layer in adata.layers) else adata.obsm[use_layer].shape[1]
         n_domain = len(adata.obs['batch'].cat.categories)
@@ -213,6 +218,7 @@ def SCALEX(
             processed=processed,
             batch_name=batch_name,
             batch_key=batch_key,
+            no_batch=no_batch,
             # keep_mt=keep_mt,
             log = log,
             num_workers=num_workers,
@@ -343,6 +349,8 @@ def _add_integrate_args(parser):
                    help='obs column to use as batch key (default: batch)')
     g.add_argument('--batch_name', type=str, default='batch',
                    help='Name written to adata.obs for batch column (default: batch)')
+    g.add_argument('--no_batch', action='store_true', default=False,
+                   help='Treat all cells as one batch (disable batch correction)')
     g.add_argument('--profile', type=str, default='RNA', choices=['RNA', 'ATAC'],
                    help='Data modality (default: RNA)')
     g.add_argument('--join', type=str, default='inner', choices=['inner', 'outer'],
@@ -445,6 +453,7 @@ def _run_integrate(argv):
         max_iteration=args.max_iteration,
         impute=args.impute,
         batch_name=args.batch_name,
+        no_batch=args.no_batch,
         seed=args.seed,
         gpu=args.gpu,
         outdir=args.outdir,
@@ -611,7 +620,7 @@ def _run_annotate(argv):
     marker_df.to_csv(marker_path, index=False)
     print(f'Markers saved → {marker_path}')
 
-    from scalex.pl.plot import plot_heatmap
+    from scalex.pl import plot_heatmap
     from scalex.pp.celltype import reorder_marker_dict_diagonal
     from scalex.data import aggregate_data
     print('Plotting diagonal heatmap …')

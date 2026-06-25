@@ -1,10 +1,10 @@
 """
-Backward-compatibility shim. Plotting functions have moved to scalex/pl/plot.py.
+Backward-compatibility shim. Plotting functions have moved to scalex.pl.
 Importing from this module will raise a DeprecationWarning.
 """
 import warnings
 
-from scalex.pl.plot import (
+from scalex.pl import (
     embedding as _embedding,
     plot_expr as _plot_expr,
     plot_meta as _plot_meta,
@@ -15,7 +15,7 @@ from scalex.pl.plot import (
     plot_radar as _plot_radar,
 )
 
-_MSG = "scalex.plot.{name} is deprecated; use scalex.pl.plot.{name} instead."
+_MSG = "scalex.plot.{name} is deprecated; use scalex.pl.{name} instead."
 
 
 def embedding(*args, **kwargs):

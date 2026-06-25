@@ -7,6 +7,26 @@ from anndata import concat
 from scalex.io import aggregate_data
 
 
+def _max_group_detection(adata, groupby) -> np.ndarray:
+    """Max over groups of the per-feature detection fraction (cells with X>0).
+
+    Returns a 1-D array of length ``n_vars``: for each feature, the highest
+    fraction of cells in which it is detected across all groups.
+    """
+    import scipy.sparse as sp
+    binary = adata.X > 0
+    best = np.zeros(adata.n_vars, dtype=float)
+    for g in adata.obs[groupby].cat.categories:
+        mask = (adata.obs[groupby] == g).values
+        n = int(mask.sum())
+        if n == 0:
+            continue
+        sub = binary[mask]
+        s = np.asarray(sub.sum(axis=0)).ravel() if sp.issparse(sub) else np.asarray(sub).sum(axis=0).ravel()
+        best = np.maximum(best, s / n)
+    return best
+
+
 def get_markers(
         adata,
         groupby='cell_type',
@@ -19,9 +39,11 @@ def get_markers(
         min_cell_per_batch=100,
         method='wilcoxon',
         force=False,
+        pval_key='pvals_adj',
+        min_pct=0.0,
     ):
     """
-    Get markers filtered by both p-value and log fold change.
+    Get markers filtered by detection fraction, p-value and log fold change.
 
     Parameters
     ----------
@@ -29,6 +51,17 @@ def get_markers(
         0.58 ≈ 1.5 fold change (log2(1.5)), 1.0 ≈ 2 fold change
     min_cell_per_batch
         Minimum number of cells required per batch
+    pval_key
+        Column used for the p-value filter: 'pvals_adj' (BH-adjusted, default) or
+        'pvals' (raw).
+    min_pct
+        Minimum detection fraction (fraction of cells with non-zero signal). A
+        feature must be detected in ≥ ``min_pct`` of the cells of its own group
+        to be called a marker. The same threshold also pre-filters features
+        before testing (keeping those detected in ≥ ``min_pct`` of at least one
+        group), which removes ultra-sparse noise and shrinks the multiple-testing
+        burden so that BH-adjusted p-values stay meaningful even for hundreds of
+        thousands of peaks. ``0`` disables both (legacy behaviour).
     """
     from scalex.pp.annotation import format_rna
 
@@ -36,25 +69,158 @@ def get_markers(
     if filter_pseudo:
         adata = format_rna(adata)
 
-    markers_dict = {}
     adata.obs[groupby] = adata.obs[groupby].astype('category')
-    clusters = adata.obs[groupby].cat.categories
 
-    if 'rank_genes_groups' not in adata.uns or force:
-        if not processed:
-            sc.pp.normalize_total(adata, target_sum=10000)
-            sc.pp.log1p(adata)
-        sc.tl.rank_genes_groups(adata, groupby=groupby, method=method)
+    if not processed:
+        sc.pp.normalize_total(adata, target_sum=10000)
+        sc.pp.log1p(adata)
 
-    for cluster in clusters:
+    # Prevalence pre-filter — keep features detected in ≥ min_pct of cells in at
+    # least one group. Shrinks the BH denominator so adjusted p-values remain
+    # usable for very large feature sets (e.g. peaks).
+    recompute = force or 'rank_genes_groups' not in adata.uns
+    if min_pct and min_pct > 0:
+        keep = _max_group_detection(adata, groupby) >= min_pct
+        if keep.any() and not keep.all():
+            adata = adata[:, keep].copy()
+            recompute = True
+
+    if recompute:
+        sc.tl.rank_genes_groups(adata, groupby=groupby, method=method, pts=True)
+
+    markers_dict = {}
+    for cluster in adata.obs[groupby].cat.categories:
         df = sc.get.rank_genes_groups_df(adata, group=cluster)
-        filtered = df[
-            (df['pvals_adj'] < pval_cutoff) &
-            (df['logfoldchanges'] > logfc_cutoff)
-        ].copy()
+        mask = (df[pval_key] < pval_cutoff) & (df['logfoldchanges'] > logfc_cutoff)
+        if min_pct and min_pct > 0 and 'pct_nz_group' in df.columns:
+            mask &= df['pct_nz_group'] >= min_pct
+        filtered = df[mask]
         markers_dict[cluster] = filtered.sort_values('scores', ascending=False).head(top_n)['names'].values
 
     return markers_dict
+
+
+# Substrings that mark an obs column as a sequencing-depth/coverage variable, which is
+# log10-transformed before bias matching (ArchR uses log10(nFrags)). TSS-like columns
+# are used as-is.
+_DEPTH_HINTS = ('nfrag', 'ncount', 'fragment', 'depth', 'reads', 'cutsite', 'n_counts')
+
+
+def _resolve_bias_cols(adata, bias):
+    """Resolve the bias obs columns. ``bias=True`` auto-detects an ArchR-like pair:
+    a TSS-enrichment column (if present) plus one sequencing-depth column."""
+    if bias is True:
+        cols = []
+        for c in adata.obs.columns:
+            if 'tss' in c.lower() and 'enrich' in c.lower():
+                cols.append(c)
+                break
+        for cand in ('nFrags', 'nCount_ATAC', 'atac_fragments', 'atac_peak_region_fragments', 'n_counts'):
+            if cand in adata.obs.columns:
+                cols.append(cand)
+                break
+        if not cols:
+            raise ValueError("bias=True but no TSS-enrichment or depth column found in adata.obs; "
+                             "pass an explicit list of obs columns to `bias`.")
+        return cols
+    return list(bias)
+
+
+def _bias_matrix(adata, bias_cols):
+    """Build a z-scored cell x bias matrix; depth-like columns are log10-transformed."""
+    mats = []
+    for c in bias_cols:
+        v = np.asarray(adata.obs[c]).astype(float)
+        if any(h in c.lower() for h in _DEPTH_HINTS):
+            v = np.log10(v + 1.0)
+        s = v.std()
+        v = (v - v.mean()) / s if s > 0 else v * 0.0
+        mats.append(v)
+    return np.vstack(mats).T
+
+
+def find_markers_archr(adata, groupby='cell_type', bias=True, set_type='peak',
+                       pval_cutoff=0.05, logfc_cutoff=None, top_n=300,
+                       pval_key='pvals', min_pct=0.05, method='wilcoxon',
+                       bg_ratio=1, processed=False, filter_pseudo=None, seed=0):
+    """ArchR ``getMarkerFeatures``-style marker finding (standalone).
+
+    Self-contained: does its own normalization + prevalence pre-filter and does NOT
+    use ``get_markers``/``diagonal_heatmap``. For each group it tests that group's
+    cells against a **bias-matched background** of non-group cells (nearest neighbours
+    in standardized bias space; ArchR bias = TSS enrichment + log10 depth) with a
+    Wilcoxon test, then keeps features passing ``pval_key < pval_cutoff`` and
+    ``Log2FC > logfc_cutoff`` (top ``top_n`` by score). Returns ``{group: np.array(features)}``.
+
+    Parameters
+    ----------
+    bias
+        ``True`` -> auto-detect an ArchR-like pair from ``.obs`` (a TSS-enrichment column
+        if present, plus a sequencing-depth column), or pass an explicit list of obs
+        column names. Depth-like columns are log10-transformed; all are z-scored.
+    set_type
+        Only sets the default ``logfc_cutoff`` ('peak' -> 0.25, else 1.25) and whether
+        ``format_rna`` pseudogene filtering is applied (genes only). ArchR's Log2FC>=1.25
+        is defined on ArchR's own normalization and does not transfer to this log1p
+        matrix, hence the gentler peak default.
+
+    Approximates ArchR (bias-matched background + Wilcoxon + FDR cutoff); not bit-identical.
+    """
+    from sklearn.neighbors import NearestNeighbors
+
+    if logfc_cutoff is None:
+        logfc_cutoff = 0.25 if set_type == 'peak' else 1.25
+    if filter_pseudo is None:
+        filter_pseudo = set_type != 'peak'
+
+    adata = adata.copy()
+    if filter_pseudo:
+        from scalex.pp.annotation import format_rna
+        adata = format_rna(adata)
+    adata.obs[groupby] = adata.obs[groupby].astype('category')
+    if not processed:
+        sc.pp.normalize_total(adata, target_sum=10000)
+        sc.pp.log1p(adata)
+    # Prevalence pre-filter: keep features detected in >= min_pct of >=1 group.
+    if min_pct and min_pct > 0:
+        keep = _max_group_detection(adata, groupby) >= min_pct
+        if keep.any() and not keep.all():
+            adata = adata[:, keep].copy()
+
+    bias_cols = _resolve_bias_cols(adata, bias)
+    print(f"ArchR-style markers: bias-matched background on {bias_cols}")
+    X = _bias_matrix(adata, bias_cols)
+    labels = adata.obs[groupby].astype(str).values
+    cats = [str(c) for c in adata.obs[groupby].cat.categories]
+
+    markers = {}
+    for g in cats:
+        in_g = labels == g
+        grp_idx = np.where(in_g)[0]
+        other = np.where(~in_g)[0]
+        if grp_idx.size < 1 or other.size < 1:
+            markers[g] = np.array([])
+            continue
+        k = min(max(1, int(bg_ratio)), other.size)
+        nn = NearestNeighbors(n_neighbors=k).fit(X[other])
+        _, nbr = nn.kneighbors(X[grp_idx])
+        bg_idx = np.unique(other[nbr.ravel()])
+
+        sub = adata[np.concatenate([grp_idx, bg_idx])].copy()
+        grp = np.array(['grp'] * grp_idx.size + ['bg'] * bg_idx.size)
+        sub.obs['_archr_grp'] = pd.Categorical(grp, categories=['bg', 'grp'])
+        sc.tl.rank_genes_groups(sub, '_archr_grp', groups=['grp'], reference='bg',
+                                method=method, pts=True)
+        df = sc.get.rank_genes_groups_df(sub, group='grp')
+        mask = (df[pval_key] < pval_cutoff) & (df['logfoldchanges'] > logfc_cutoff)
+        if min_pct and min_pct > 0 and 'pct_nz_group' in df.columns:
+            mask &= df['pct_nz_group'] >= min_pct
+        filtered = df[mask].sort_values('scores', ascending=False)
+        if top_n and top_n > 0:
+            filtered = filtered.head(top_n)
+        markers[g] = filtered['names'].values
+        print(g, len(markers[g]))
+    return markers
 
 
 def flatten_dict(markers: dict) -> np.ndarray:
@@ -181,10 +347,10 @@ def find_gene_program(adata, groupby='cell_type', processed=False, n_clusters=25
     return gene_cluster_dict, adata_avg
 
 
-def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=25, top_n=-1, pval_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, **kwargs):
+def find_peak_program(adata, groupby='cell_type', processed=False, n_clusters=25, top_n=-1, pval_cutoff=0.05, logfc_cutoff=1., filter_pseudo=False, pval_key='pvals', min_pct=0.05, **kwargs):
     """Find peak program for each cell type."""
-    return find_gene_program(adata, groupby=groupby, processed=processed, top_n=top_n, filter_pseudo=filter_pseudo,
-                             pval_cutoff=pval_cutoff, logfc_cutoff=logfc_cutoff, **kwargs)
+    return find_gene_program(adata, groupby=groupby, processed=processed, n_clusters=n_clusters, top_n=top_n, filter_pseudo=filter_pseudo,
+                             pval_cutoff=pval_cutoff, logfc_cutoff=logfc_cutoff, pval_key=pval_key, min_pct=min_pct, **kwargs)
 
 
 def _process_group(args):
@@ -198,6 +364,10 @@ def _process_group(args):
             kwargs['pval_cutoff'] = 0.05
         if 'logfc_cutoff' not in kwargs:
             kwargs['logfc_cutoff'] = 1.
+        if 'pval_key' not in kwargs:
+            kwargs['pval_key'] = 'pvals'
+        if 'min_pct' not in kwargs:
+            kwargs['min_pct'] = 0.05
 
     group_counts = adata_.obs[groupby].value_counts()
     valid_groups = group_counts[group_counts >= 2].index

@@ -122,7 +122,25 @@ def plot_sankey(
     """Plot a Sankey/alluvial diagram connecting N parallel label arrays.
 
     The diagram is rendered with matplotlib (non-interactive) so it can be
-    saved as a static figure (PNG/PDF/SVG) without a browser.
+    saved as a static figure (PNG/PDF/SVG) without a browser. Use this to
+    visualise **how categories flow** between annotations — e.g. clusters →
+    cell-types, or before / after relabelling.
+
+    Examples
+    --------
+    Two-column flow from Leiden clusters to cell-type labels::
+
+        scalex.pl.plot_sankey(adata.obs['leiden'], adata.obs['cell_type'],
+                              names=['Cluster', 'Cell type'])
+
+    Three-stage transition with custom palette per column::
+
+        scalex.pl.plot_sankey(
+            adata.obs['cluster_v1'], adata.obs['cluster_v2'], adata.obs['cell_type'],
+            names=['v1', 'v2', 'Annotated'],
+            colormaps=[None, None, ct_color_map],
+            save_path='figures/sankey.pdf',
+        )
 
     Parameters
     ----------

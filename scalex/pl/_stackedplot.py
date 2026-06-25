@@ -13,8 +13,19 @@ def plot_crosstab(
     col_order: list = None,
     save: str = None,
 ) -> plt.Figure:
-    """
-    Side-by-side heatmaps of row- and column-normalized crosstab ratios.
+    """Side-by-side row- and column-normalised crosstab heatmaps.
+
+    Takes a contingency DataFrame (rows = annotation, columns = condition) and
+    draws **two heatmaps**: row-proportion (each row sums to 1) and
+    column-proportion (each column sums to 1). Use when you want to read
+    composition both ways from the same table.
+
+    See :func:`plot_crosstab_stacked` for the part-to-whole stacked-bar view.
+
+    Examples
+    --------
+    >>> ct = pd.crosstab(adata.obs['cell_type'], adata.obs['condition'])
+    >>> scalex.pl.plot_crosstab(ct, title='Cell-type × Condition')
 
     Parameters
     ----------
@@ -87,9 +98,17 @@ def plot_crosstab_stacked(
     col_order: list = None,
     save: str = None,
 ) -> plt.Figure:
-    """
-    Stacked bar plot: one bar per condition (column), stacked by annotation (row),
-    normalized to sum to 1.
+    """Stacked-bar composition: one bar per condition, stacked by annotation.
+
+    Each column of ``ct`` becomes a bar normalised to 1.0 and stacked by row
+    category. Use when you want a quick part-to-whole composition per
+    condition; for the dual heatmap view see :func:`plot_crosstab`.
+
+    Examples
+    --------
+    >>> ct = pd.crosstab(adata.obs['cell_type'], adata.obs['condition'])
+    >>> scalex.pl.plot_crosstab_stacked(ct, palette=cell_type_color_map,
+    ...                                 row_order=['T', 'B', 'Mono', 'NK'])
 
     Parameters
     ----------

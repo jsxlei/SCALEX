@@ -7,14 +7,21 @@ import itertools
 import scanpy as sc
 import anndata
 
-from scalex.pl._utils import _sort_key
+from scalex.pl._utils import _sort_key, _pearson_corr, _pearson_cross, _row_zscore
 
 
 def plot_agg_heatmap(adata, genes, cell_type: str = 'cell_type', **kwargs):
-    """Heatmap of per-cell-type mean expression for a gene set.
+    """Cell-type × gene mean-expression heatmap (one row per cell-type).
 
-    Aggregates ``adata`` (or ``adata.raw``) by ``cell_type`` (mean), wraps
-    the result back into an AnnData, and dispatches to ``sc.pl.heatmap``.
+    Aggregates ``adata`` (or ``adata.raw``) by ``cell_type`` (mean), wraps the
+    result back into an AnnData, and dispatches to ``scanpy.pl.heatmap``. Use
+    when you want a quick aggregated view of marker genes — for a
+    cell-by-gene heatmap with k-means rows, use :func:`plot_heatmap`.
+
+    Examples
+    --------
+    >>> scalex.pl.plot_agg_heatmap(adata, genes=['CD3D', 'CD8A', 'MS4A1'],
+    ...                            cell_type='cell_type')
     """
     adata_agg = adata.raw.to_adata() if adata.raw is not None else adata
     df = adata_agg.to_df()
@@ -47,19 +54,35 @@ def _build_color_lookup(modules_series, mod_cmap='tab10', color_map=None):
     return lookup
 
 
-def _add_row_labels(cm, modules_aligned):
-    if cm.dendrogram_row is not None:
-        reordered_indices = cm.dendrogram_row.reordered_ind
-    else:
-        reordered_indices = np.arange(len(modules_aligned))
-    mod_reordered = modules_aligned.iloc[reordered_indices]
-    y = np.arange(modules_aligned.size)
-    mod_map = {x: y[mod_reordered == x].mean() for x in mod_reordered.unique() if x != -1}
+def _add_row_labels(cm, modules_aligned, module_color_lookup, fontsize: int = 9,
+                    cbar_offset_fig: float = 0.01):
+    """Add a module legend on the right of the heatmap (one coloured Patch per module).
+
+    Mirrors the right-side legend used by ``plot_corr_clustermap`` so the same
+    colours that appear in the row-colors strip are explicitly named. The
+    legend is left-aligned with the colorbar — its swatches start at the same
+    x-position as the colorbar (``heatmap.x1 + cbar_offset_fig`` in figure
+    coordinates).
+    """
+    from matplotlib.patches import Patch
     plt.sca(cm.ax_row_colors)
-    for mod, mod_y in mod_map.items():
-        plt.text(-0.5, y=mod_y, s="{}".format(mod),
-                 horizontalalignment='right', verticalalignment='center')
     plt.xticks([])
+    seen = []
+    for v in modules_aligned:
+        if v == -1 or v in seen:
+            continue
+        seen.append(v)
+    handles = [Patch(facecolor=module_color_lookup[m], edgecolor='none', label=str(m))
+               for m in seen]
+    if not handles:
+        return
+    heatmap_pos = cm.ax_heatmap.get_position()
+    x_anchor = 1.0 + cbar_offset_fig / max(heatmap_pos.width, 1e-6)
+    cm.ax_heatmap.legend(
+        handles=handles, bbox_to_anchor=(x_anchor, 1.0), loc='upper left',
+        frameon=False, fontsize=fontsize, handlelength=1.0, handleheight=1.0,
+        borderpad=0.0, borderaxespad=0.0, labelspacing=0.4,
+    )
 
 
 def _add_col_labels(cm, col_modules_aligned):
@@ -80,8 +103,18 @@ def _add_col_labels(cm, col_modules_aligned):
     ax_cc.set_yticks([])
 
 
-def _to_flat_series(s, index):
-    """Return a plain object-dtype Series with a positional RangeIndex, stripping Categorical/MultiIndex."""
+def _to_flat_series(s, index, ref_labels=None):
+    """Return a plain object-dtype Series with a positional RangeIndex.
+
+    When ``ref_labels`` is given and every label is present in ``s.index``,
+    align ``s`` to that order so a name-indexed input (e.g. a gene→module
+    Series) matches a name-indexed correlation matrix. Otherwise fall back
+    to positional iteration of ``s``.
+    """
+    if ref_labels is not None and isinstance(s, pd.Series):
+        idx_set = set(s.index)
+        if all(lbl in idx_set for lbl in ref_labels):
+            s = s.reindex(ref_labels)
     return pd.Series(list(s), index=index, dtype=object)
 
 
@@ -99,20 +132,65 @@ def _proportional_figsize(n_rows, n_cols, size, max_ratio=1.5):
 
 
 def _spread_label_positions(label_pos, n_total, min_gap):
-    """Push labels apart so text doesn't overlap, but only as far as necessary."""
+    """Distribute labels across the full ``[0, n_total - 1]`` range.
+
+    Labels are spaced evenly along the full axis (top-to-bottom or
+    left-to-right) regardless of where the anchored items happen to fall —
+    so the leader lines fill the whole figure height instead of bunching up
+    near the first gene. ``label_pos`` is expected pre-sorted; ``min_gap``
+    is honoured as a lower bound on the spacing.
+    """
     label_pos = np.asarray(label_pos, dtype=float).copy()
-    if label_pos.size == 0:
+    n = label_pos.size
+    if n == 0:
         return label_pos
-    label_pos.sort()
-    for i in range(1, len(label_pos)):
-        label_pos[i] = max(label_pos[i], label_pos[i - 1] + min_gap)
-    for i in range(len(label_pos) - 2, -1, -1):
-        label_pos[i] = min(label_pos[i], label_pos[i + 1] - min_gap)
-    return np.clip(label_pos, 0, n_total - 1)
+    if n == 1:
+        return np.clip(label_pos, 0, n_total - 1)
+    even = np.linspace(0, n_total - 1, n)
+    if (n - 1) * min_gap > (n_total - 1):
+        # Not enough room; fall back to centred even spacing.
+        return even
+    # Use the wider of "evenly across full axis" or "min_gap-spaced".
+    spaced = even.copy()
+    for i in range(1, n):
+        spaced[i] = max(spaced[i], spaced[i - 1] + min_gap)
+    for i in range(n - 2, -1, -1):
+        spaced[i] = min(spaced[i], spaced[i + 1] - min_gap)
+    return np.clip(spaced, 0, n_total - 1)
+
+
+def _resolve_label_ticks(spec, group_color_lookup=None, item_to_group=None):
+    """Normalise a label-ticks spec to ``(items, item_colors)``.
+
+    ``spec`` is either:
+
+    * a ``{group: [labels]}`` dict — labels are flattened and each gets the
+      colour of its group via ``group_color_lookup``;
+    * a flat iterable of label names — when ``item_to_group`` (label → group)
+      and ``group_color_lookup`` are both supplied, each label is coloured by
+      its group's colour; otherwise ``item_colors`` is ``None`` (black labels).
+
+    Missing groups fall back to black.
+    """
+    lookup = group_color_lookup or {}
+    if isinstance(spec, dict):
+        items, item_colors = [], {}
+        for group, gs in spec.items():
+            colour = lookup.get(group, 'black')
+            for g in gs:
+                items.append(g)
+                item_colors[g] = colour
+        return items, item_colors
+    items = list(spec)
+    if item_to_group is not None and lookup:
+        item_colors = {g: lookup.get(item_to_group.get(g), 'black') for g in items}
+        return items, item_colors
+    return items, None
 
 
 def _add_label_sticks(fig, anchor_pos, items, item_to_pos, n_total,
-                      side: str, fontsize: float = 6, width_frac: float = 0.07):
+                      side: str, fontsize: float = 6, width_frac: float = 0.07,
+                      item_colors=None):
     """Draw leader-line "stickout" labels next to a heatmap.
 
     Parameters
@@ -128,14 +206,28 @@ def _add_label_sticks(fig, anchor_pos, items, item_to_pos, n_total,
         in the displayed matrix.
     side
         ``'left'`` for row labels, ``'bottom'`` for column labels.
+    item_colors
+        Optional ``{label: colour}`` mapping used to colour each label's text and
+        leader line. Missing entries default to black.
     """
     items = [g for g in items if g in item_to_pos]
     if not items:
         return
     items.sort(key=lambda g: item_to_pos[g])
+    item_colors = item_colors or {}
+
+    def _c(g):
+        return item_colors.get(g, 'black')
+
+    fig_w, fig_h = fig.get_size_inches()
+    line_kw = dict(color='black', lw=0.5, clip_on=False)
 
     if side == 'left':
-        min_gap = max(1.0, n_total / 35)
+        # Convert one line of text into row-units so labels don't overlap.
+        anchor_inches = anchor_pos.height * fig_h
+        row_inches = anchor_inches / n_total
+        line_inches = fontsize * 1.25 / 72.0
+        min_gap = max(1.0, line_inches / max(row_inches, 1e-6))
         gys = np.array([item_to_pos[g] for g in items], dtype=float)
         lys = _spread_label_positions(gys, n_total, min_gap)
         ax_ticks = fig.add_axes([
@@ -145,17 +237,19 @@ def _add_label_sticks(fig, anchor_pos, items, item_to_pos, n_total,
         ax_ticks.set_xlim(0, 1)
         ax_ticks.set_ylim(n_total - 0.5, -0.5)
         ax_ticks.axis('off')
-        kw = dict(color='black', lw=0.5, clip_on=False)
         for g, ly, gy in zip(items, lys, gys):
-            ax_ticks.plot([0.00, 0.20], [ly, ly], **kw)
-            ax_ticks.plot([0.20, 0.90], [ly, gy], **kw)
-            ax_ticks.plot([0.90, 1.00], [gy, gy], **kw)
+            ax_ticks.plot([0.00, 0.20], [ly, ly], **line_kw)
+            ax_ticks.plot([0.20, 0.90], [ly, gy], **line_kw)
+            ax_ticks.plot([0.90, 1.00], [gy, gy], **line_kw)
             ax_ticks.text(-0.02, ly, str(g), ha='right', va='center',
-                          fontsize=fontsize, clip_on=False)
+                          color=_c(g), fontsize=fontsize, clip_on=False)
         return ax_ticks
 
-    # side == 'bottom'
-    min_gap = max(1.0, n_total / 35)
+    # side == 'bottom' — labels rotated 45°, projected onto x-axis as ~1/sqrt(2)*line_inches
+    anchor_inches = anchor_pos.width * fig_w
+    col_inches = anchor_inches / n_total
+    line_inches = fontsize * 1.25 / 72.0
+    min_gap = max(1.0, (line_inches / 1.4142) / max(col_inches, 1e-6))
     gxs = np.array([item_to_pos[g] for g in items], dtype=float)
     lxs = _spread_label_positions(gxs, n_total, min_gap)
     ax_ticks = fig.add_axes([
@@ -165,13 +259,12 @@ def _add_label_sticks(fig, anchor_pos, items, item_to_pos, n_total,
     ax_ticks.set_xlim(-0.5, n_total - 0.5)
     ax_ticks.set_ylim(0, 1)
     ax_ticks.axis('off')
-    kw = dict(color='black', lw=0.5, clip_on=False)
     for g, lx, gx in zip(items, lxs, gxs):
-        ax_ticks.plot([gx, gx], [1.00, 0.90], **kw)
-        ax_ticks.plot([gx, lx], [0.90, 0.20], **kw)
-        ax_ticks.plot([lx, lx], [0.20, 0.00], **kw)
+        ax_ticks.plot([gx, gx], [1.00, 0.90], **line_kw)
+        ax_ticks.plot([gx, lx], [0.90, 0.20], **line_kw)
+        ax_ticks.plot([lx, lx], [0.20, 0.00], **line_kw)
         ax_ticks.text(lx, -0.02, str(g), ha='right', va='top',
-                      rotation=45, fontsize=fontsize, clip_on=False)
+                      rotation=45, color=_c(g), fontsize=fontsize, clip_on=False)
     return ax_ticks
 
 
@@ -182,6 +275,8 @@ def local_correlation_plot(
             z_cmap='RdBu_r', yticklabels=False, save=False,
             cluster=True, size=10, square=True,
             row_label_ticks=None, col_label_ticks=None,
+            gene_ticks=None, gene_tick_fontsize: float = 7,
+            gene_ticks_both_axes: bool = False,
             label_fontsize: float = 6,
 ):
     # Capture original labels so users can address rows/cols by name (gene
@@ -189,13 +284,28 @@ def local_correlation_plot(
     orig_row_labels = list(local_correlation_z.index)
     orig_col_labels = list(local_correlation_z.columns)
 
+    # `gene_ticks` annotates the rows (y-axis) only by default — the column
+    # (x-axis) labels usually duplicate the same names in a gene×gene corr
+    # and clutter the figure. Set ``gene_ticks_both_axes=True`` to also draw
+    # them on the bottom axis, or pass ``col_label_ticks=`` explicitly.
+    if gene_ticks is not None:
+        if row_label_ticks is None:
+            row_label_ticks = gene_ticks
+        if (col_label_ticks is None and gene_ticks_both_axes
+                and orig_row_labels == orig_col_labels):
+            col_label_ticks = gene_ticks
+    tick_fontsize = gene_tick_fontsize if gene_ticks is not None else label_fontsize
+
     # Normalise to positional RangeIndex throughout to avoid MultiIndex/Categorical issues
     n_rows = len(local_correlation_z)
     n_cols = local_correlation_z.shape[1]
     row_idx = np.arange(n_rows)
     col_idx = np.arange(n_cols)
     local_correlation_z = pd.DataFrame(local_correlation_z.values, index=row_idx, columns=col_idx)
-    modules_aligned = _to_flat_series(modules, row_idx)
+    modules_aligned = _to_flat_series(modules, row_idx, ref_labels=orig_row_labels)
+    # Capture gene → module BEFORE any positional reordering so list-form
+    # ``gene_ticks`` can be coloured by each gene's module via ``color_map``.
+    gene_to_module = dict(zip(orig_row_labels, modules_aligned))
     # Track the row/col reordering applied before clustermap.
     row_pre_order = np.arange(n_rows)
     col_pre_order = np.arange(n_cols)
@@ -237,7 +347,7 @@ def local_correlation_plot(
 
     if col_modules is not None:
         # Two-adata mode: annotate columns independently
-        col_modules_aligned = _to_flat_series(col_modules, col_idx)
+        col_modules_aligned = _to_flat_series(col_modules, col_idx, ref_labels=orig_col_labels)
         if not cluster:
             if order is not None:
                 rank = {ct: i for i, ct in enumerate(order)}
@@ -275,7 +385,7 @@ def local_correlation_plot(
     if cm.ax_col_dendrogram is not None:
         cm.ax_col_dendrogram.remove()
 
-    _add_row_labels(cm, modules_aligned)
+    _add_row_labels(cm, modules_aligned, module_color_lookup)
 
     if col_modules is not None:
         _add_col_labels(cm, col_modules_aligned)
@@ -289,8 +399,12 @@ def local_correlation_plot(
         item_to_pos = {lbl: r for r, lbl in enumerate(final_to_orig)}
         anchor = (cm.ax_row_colors.get_position()
                   if cm.ax_row_colors is not None else cm.ax_heatmap.get_position())
-        _add_label_sticks(fig, anchor, list(row_label_ticks), item_to_pos,
-                          n_total=n_rows, side='left', fontsize=label_fontsize)
+        items, item_colors = _resolve_label_ticks(
+            row_label_ticks, module_color_lookup, item_to_group=gene_to_module,
+        )
+        _add_label_sticks(fig, anchor, items, item_to_pos,
+                          n_total=n_rows, side='left', fontsize=tick_fontsize,
+                          item_colors=item_colors)
 
     if col_label_ticks:
         post_idx = (cm.dendrogram_col.reordered_ind
@@ -298,8 +412,20 @@ def local_correlation_plot(
         final_to_orig = [orig_col_labels[col_pre_order[i]] for i in post_idx]
         item_to_pos = {lbl: c for c, lbl in enumerate(final_to_orig)}
         anchor = cm.ax_heatmap.get_position()
-        _add_label_sticks(fig, anchor, list(col_label_ticks), item_to_pos,
-                          n_total=n_cols, side='bottom', fontsize=label_fontsize)
+        if col_modules is not None:
+            col_lookup = col_color_lookup
+            col_item_to_group = dict(zip(orig_col_labels,
+                                         _to_flat_series(col_modules, col_idx,
+                                                          ref_labels=orig_col_labels)))
+        else:
+            col_lookup = module_color_lookup
+            col_item_to_group = gene_to_module
+        items, item_colors = _resolve_label_ticks(
+            col_label_ticks, col_lookup, item_to_group=col_item_to_group,
+        )
+        _add_label_sticks(fig, anchor, items, item_to_pos,
+                          n_total=n_cols, side='bottom', fontsize=tick_fontsize,
+                          item_colors=item_colors)
 
     if cm.cax:
         cm.cax.grid(False)
@@ -315,6 +441,7 @@ def local_correlation_plot(
         ])
         cm.cax.set_ylabel('Correlation', fontsize=12)
         cm.cax.yaxis.set_label_position("right")
+        cm.cax.yaxis.tick_right()
 
     if save:
         import os
@@ -339,26 +466,6 @@ def _subsample_by_group(adata, groupby, n=50):
         .index.get_level_values(-1)
     )
     return adata[idx]
-
-
-def _pearson_corr(X):
-    """Pearson correlation matrix between rows of X (float32, normalized matmul)."""
-    X = X.astype(np.float32)
-    X_c = X - X.mean(axis=1, keepdims=True)
-    norms = np.linalg.norm(X_c, axis=1, keepdims=True)
-    norms[norms == 0] = 1.0
-    return (X_c / norms) @ (X_c / norms).T
-
-
-def _pearson_cross(A, B):
-    """Pearson cross-correlation between rows of A and rows of B (float32)."""
-    A = A.astype(np.float32)
-    B = B.astype(np.float32)
-    A_c = A - A.mean(axis=1, keepdims=True)
-    B_c = B - B.mean(axis=1, keepdims=True)
-    A_n = A_c / (np.linalg.norm(A_c, axis=1, keepdims=True) + 1e-10)
-    B_n = B_c / (np.linalg.norm(B_c, axis=1, keepdims=True) + 1e-10)
-    return A_n @ B_n.T
 
 
 def _split_by_batch(adata, batch):
@@ -415,15 +522,54 @@ def plot_corr(
     transpose: bool = False,
     **kwargs,
 ):
-    """Cell–cell correlation heatmap with module-coloured side strips.
+    """Cell–cell correlation clustermap with module-coloured side strips.
 
-    Computes the Pearson correlation between cells using ``adata.obsm[obsm_key]``
-    and dispatches to :func:`local_correlation_plot`. Two modes:
+    Backed by ``seaborn.clustermap``. Computes the Pearson correlation between
+    cells using ``adata.obsm[obsm_key]`` and dispatches to
+    :func:`local_correlation_plot`. Two modes:
 
     1. **Within-dataset** (``adata2`` is None and ``batch`` is None): N×N
        correlation; rows/columns share the same module labels.
     2. **Cross-dataset**: pass ``adata2`` directly, or pass ``batch=<obs col>``
        to split a single AnnData into two views.
+
+    When to use this — and when not to
+    ----------------------------------
+    Pick :func:`plot_corr` when you want:
+
+    * a **dendrogram** drawn alongside the correlation matrix (seaborn clustermap),
+    * a **single category per axis** for the side colour strip
+      (e.g. cell-type — passed via ``groupby``),
+    * **stickout / leader-line labels** on selected rows/columns
+      (``row_label_ticks``, ``col_label_ticks``, ``gene_ticks``),
+    * a flexible / rectangular matrix (gene × gene, cell × cell, cross-batch).
+
+    Pick :func:`plot_corr_clustermap` instead when you want:
+
+    * **two stacked annotations** per axis (e.g. cell-type **and** batch),
+    * **diagonal alignment** of cell-types via an explicit ``cat_order``,
+    * a fixed matplotlib layout you can drop into a larger figure
+      (no seaborn clustermap structure).
+
+    Examples
+    --------
+    Within-dataset cell–cell similarity, coloured by ``cell_type``::
+
+        scalex.pl.plot_corr(adata, groupby='cell_type', obsm_key='latent')
+
+    Cross-batch comparison from a single AnnData::
+
+        scalex.pl.plot_corr(adata, batch='batch', groupby='cell_type',
+                            subsample=True, subsample_n=200)
+
+    Gene × gene with custom modules and highlighted gene labels (y-axis only
+    by default; pass ``gene_ticks_both_axes=True`` to also label the x-axis)::
+
+        gene_series = scalex.pl.get_module_series(topgenes_df)
+        scalex.pl.plot_corr(gene_corr, modules=gene_series,
+                            color_map=mod_color_map,
+                            gene_ticks=['CD3D', 'CD8A', 'MS4A1'])
+
 
     Parameters
     ----------
@@ -475,15 +621,6 @@ def plot_corr(
                                   col_modules=col_modules, **kwargs)
 
 
-def _row_zscore(X):
-    """Z-score each row; rows with zero variance are left as zeros."""
-    mu = X.mean(axis=1, keepdims=True)
-    sigma = X.std(axis=1, keepdims=True)
-    sigma[sigma == 0] = 1
-    return (X - mu) / sigma
-
-
-    
 def _parse_peak(p):
     chrom, rest = p.split(':')
     s, e = rest.split('-')
@@ -819,6 +956,7 @@ def plot_heatmap(
     gene_ticks=None,
     gene_tick_fontsize=4,
     title=None,
+    per_panel_columns=False,
 ):
     """
     Unified multi-panel heatmap (publication quality).
@@ -873,6 +1011,11 @@ def plot_heatmap(
         Return value from a previous call; replays that exact row order.
     transpose : bool
         Stack panels vertically instead of side-by-side.
+    per_panel_columns : bool
+        When True each panel draws its own cell-type columns/labels (with its own
+        width) while all panels share the anchor's gene row order. Use for
+        side-by-side comparison of datasets with different (e.g. disjoint) cell
+        types. When False (default) every panel shares the anchor's columns.
 
     Returns
     -------
@@ -1069,9 +1212,17 @@ def plot_heatmap(
         for cid in range(_k)
     ])
 
-    if order is not None:
+    # `order` may be a flat list (shared across panels) or, when per_panel_columns
+    # is set, a list of per-panel order lists aligned to `panels` (each panel then
+    # follows its own dataset's order verbatim). The anchor uses its own order[0].
+    per_panel_order = (per_panel_columns and isinstance(order, (list, tuple))
+                       and len(order) == len(panels)
+                       and all(isinstance(o, (list, tuple)) for o in order))
+    anchor_order = order[0] if per_panel_order else order
+
+    if anchor_order is not None:
         ct_index  = {ct: i for i, ct in enumerate(cell_types)}
-        col_order = np.array([ct_index[ct] for ct in order if ct in ct_index])
+        col_order = np.array([ct_index[ct] for ct in anchor_order if ct in ct_index])
     else:
         col_order = (
             leaves_list(hc_linkage(cluster_means.T, method='ward'))
@@ -1092,11 +1243,36 @@ def plot_heatmap(
     else:
         row_idx = np.arange(n_rows)
 
-    ct_ord = [cell_types[i] for i in col_order]
+    ct_ord = [cell_types[i] for i in col_order]   # anchor (panels[0]) columns
     n_ct   = len(ct_ord)
 
-    for p in panels:
-        p['M_ord'] = p['M'][row_idx][:, col_order]
+    if per_panel_columns:
+        # Each panel keeps its own cell-type columns; rows stay in the shared
+        # anchor order (row_idx), which is what aligns the panels.
+        for pi, p in enumerate(panels):
+            p_cts = p['adata'].obs[groupby].tolist()
+            panel_order = order[pi] if per_panel_order else order
+            if panel_order is not None:
+                idx  = {ct: i for i, ct in enumerate(p_cts)}
+                p_co = np.array([idx[ct] for ct in panel_order if ct in idx], dtype=int)
+            else:
+                p_co = np.array([], dtype=int)
+            if p_co.size == 0:
+                # No explicit order: align each panel's columns to the shared,
+                # first-dataset-defined row programs — sort cell types by the
+                # row (program) where they peak, giving a consistent diagonal.
+                if len(p_cts) > 1:
+                    p_co = np.argsort(np.argmax(p['M'][row_idx], axis=0), kind='stable')
+                else:
+                    p_co = np.arange(len(p_cts), dtype=int)
+            p['ct_ord'] = [p_cts[i] for i in p_co]
+            p['n_ct']   = len(p_co)
+            p['M_ord']  = p['M'][row_idx][:, p_co]
+    else:
+        for p in panels:
+            p['ct_ord'] = ct_ord
+            p['n_ct']   = n_ct
+            p['M_ord']  = p['M'][row_idx][:, col_order]
 
     # ── 6. Build return DataFrame ─────────────────────────────────────────
     if use_links:
@@ -1138,10 +1314,11 @@ def plot_heatmap(
     cb_h_fixed = 0.08
     cb_gap     = 0.02
 
+    panel_dim = [p['n_ct'] * col_width for p in panels]   # per-panel column extent
+
     if transpose:
         gs_top, gs_bottom = 0.95, 0.05
-        hm_h    = n_ct * col_width
-        total_h = n_panels * hm_h + (n_panels - 1) * 0.1
+        total_h = sum(panel_dim) + (n_panels - 1) * 0.1
         fig_w   = height
         fig_h   = total_h + 1.5
         if figsize is not None:
@@ -1150,7 +1327,7 @@ def plot_heatmap(
         fig = plt.figure(figsize=(fig_w, fig_h))
         ratios = []
         for pi in range(n_panels):
-            ratios.append(hm_h)
+            ratios.append(panel_dim[pi])
             if pi < n_panels - 1:
                 ratios.append(0.1)
         gs_left = 0.20 if (show_gene_labels and _gene_groups) else 0.12
@@ -1162,16 +1339,17 @@ def plot_heatmap(
 
     else:
         gs_top, gs_bottom = 0.88, 0.22
-        hm_w  = n_ct * col_width
-        fig_w = n_panels * hm_w + (n_panels - 1) * 0.1 + 0.4 + 1.0
-        fig_h = height
+        fig_w = sum(panel_dim) + (n_panels - 1) * 0.1 + 0.4 + 1.0
+        # Side-by-side panels are narrow, so a full-height figure reads as a tall
+        # portrait. Make multi-panel plots more compact (override with height/figsize).
+        fig_h = height if n_panels == 1 else height * 0.6
         if figsize is not None:
             fig_w, fig_h = figsize
 
         fig = plt.figure(figsize=(fig_w, fig_h))
         ratios = []
         for pi in range(n_panels):
-            ratios.append(hm_w)
+            ratios.append(panel_dim[pi])
             if pi < n_panels - 1:
                 ratios.append(0.1)
         gs_left = 0.22 if ((show_gene_labels and _gene_groups) or gene_ticks) else 0.08
@@ -1193,19 +1371,21 @@ def plot_heatmap(
 
     # ── 9. Draw heatmaps ──────────────────────────────────────────────────
     for p, ax, cmap, lim in zip(panels, axes, panel_cmaps, panel_limits):
-        mat    = p['M_ord'].T if transpose else p['M_ord']
-        n_feat = p['M_ord'].shape[0]
+        mat      = p['M_ord'].T if transpose else p['M_ord']
+        p_n_ct   = p['n_ct']
+        p_ct_ord = p['ct_ord']
         ax.imshow(mat, aspect='auto', cmap=cmap,
                   vmin=lim[0], vmax=lim[1], interpolation='none')
-        if title is not None:
-            ax.set_title(title, fontsize=5, pad=2)
+        panel_title = p['label'] if per_panel_columns else title
+        if panel_title is not None:
+            ax.set_title(panel_title, fontsize=5, pad=2)
         if transpose:
-            ax.set_yticks(range(n_ct))
-            ax.set_yticklabels(ct_ord, fontsize=5)
+            ax.set_yticks(range(p_n_ct))
+            ax.set_yticklabels(p_ct_ord, fontsize=5)
             ax.set_xticks([])
         else:
-            ax.set_xticks(range(n_ct))
-            ax.set_xticklabels(ct_ord, rotation=45, ha='right', fontsize=5)
+            ax.set_xticks(range(p_n_ct))
+            ax.set_xticklabels(p_ct_ord, rotation=45, ha='right', fontsize=5)
             ax.set_yticks([])
         ax.set_frame_on(False)
         ax.grid(False)

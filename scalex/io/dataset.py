@@ -97,6 +97,7 @@ def load_data(
     join: str = 'inner',
     batch_key: str = 'batch',
     batch_name: str = 'batch',
+    no_batch: bool = False,
     groupby=None,
     subsets=None,
     min_features: int = 600,
@@ -131,6 +132,9 @@ def load_data(
         Key used to tag the batch origin in ``obs``.
     batch_name : str, default 'batch'
         Column in ``obs`` to use as the batch label for training.
+    no_batch : bool, default False
+        If True, ignore any existing batch column and treat all cells as a single
+        batch (disables batch correction).
     groupby : str | None
         Column in ``obs`` used together with ``subsets`` to filter cells.
     subsets : list | None
@@ -186,7 +190,9 @@ def load_data(
     if log:
         log.info('Raw dataset shape: {}'.format(adata.shape))
 
-    if batch_name != 'batch':
+    if no_batch:
+        adata.obs['batch'] = 'all'
+    elif batch_name != 'batch':
         if ',' in batch_name:
             names = batch_name.split(',')
             adata.obs['batch'] = adata.obs[names[0]].astype(str) + '_' + adata.obs[names[1]].astype(str)

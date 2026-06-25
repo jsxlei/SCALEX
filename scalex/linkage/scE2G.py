@@ -80,6 +80,24 @@ def load_scE2G_loops(scE2G_DIR):
     return loops
 
 
+def scE2G_paths_by_celltype(scE2G_dir: str) -> dict:
+    """Return ``{cell_type: predictions_path}`` for each cell type under ``scE2G_dir``.
+
+    Discovers the per-cell-type scE2G prediction files (raw ``.tsv.gz``, no
+    self-promoter filtering) so they can be passed directly to
+    :func:`link_peaks_to_genes` as a dict keyed by cell type.
+    """
+    import glob
+
+    pattern = os.path.join(
+        scE2G_dir, "*/multiome_powerlaw_v3", "scE2G_predictions_threshold*.tsv.gz"
+    )
+    return {
+        os.path.basename(os.path.dirname(os.path.dirname(p))): p
+        for p in sorted(glob.glob(pattern))
+    }
+
+
 def merge_loops(
     loops: dict,
     score_col: str = "E2G.Score.qnorm",
@@ -168,7 +186,10 @@ def link_peaks_to_genes(
         ``Chromosome``/``Start``/``End`` columns.
     merged_loops:
         scE2G merged loops — file path (.tsv/.tsv.gz) or DataFrame from
-        :func:`merge_loops`.
+        :func:`merge_loops`. May also be a dict ``{group: path_or_DataFrame}``
+        keyed by the same groups as ``peaks``; each group's peaks are then
+        linked against its own (cell-type-specific) loops instead of a single
+        shared/union set. Build such a dict with :func:`scE2G_paths_by_celltype`.
     gene_col:
         Column in merged_loops with target gene names (default: ``TargetGene``).
     score_col:
@@ -188,6 +209,29 @@ def link_peaks_to_genes(
     enhancer are excluded.
     If ``return_dict=True``, returns ``{group: sorted list[gene]}``.
     """
+    if isinstance(merged_loops, dict):
+        if not isinstance(peaks, dict):
+            raise ValueError(
+                "when merged_loops is a dict, peaks must be a dict keyed by the same groups"
+            )
+        results = {} if return_dict else []
+        for group, ps in peaks.items():
+            if group not in merged_loops:
+                raise KeyError(f"No scE2G loops provided for group '{group}'")
+            sub = link_peaks_to_genes(
+                {group: ps},
+                merged_loops[group],
+                gene_col=gene_col,
+                score_col=score_col,
+                score_threshold=score_threshold,
+                return_dict=return_dict,
+            )
+            if return_dict:
+                results.update(sub)
+            else:
+                results.append(sub)
+        return results if return_dict else pd.concat(results, ignore_index=True)
+
     group_map = None
     if isinstance(peaks, dict):
         if return_dict:

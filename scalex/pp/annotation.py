@@ -127,7 +127,7 @@ import warnings
 
 def read_gencode_transcripts(gtf_dir=GTF_FILE, release="latest", transcript_choice="MANE_Select",
                              annotation_set="basic", gene_type=r"lncRNA|protein_coding|IG_.*_gene|TR_.*_gene",
-                             attributes=None, features=("transcript", "exon"), timeout=300):
+                             attributes=None, features=("transcript", "exon", "CDS"), timeout=300):
     """
     gtf_dir: path to GTF file or folder containing GTFs
     release: "latest" or specific release
@@ -135,7 +135,8 @@ def read_gencode_transcripts(gtf_dir=GTF_FILE, release="latest", transcript_choi
     annotation_set: "basic" or "comprehensive"
     gene_type: regex for gene types
     attributes: list of attributes to keep ['gene_id', 'gene_type', 'gene_name', 'transcript_id']
-    features: tuple of features to keep ('transcript', 'exon')
+    features: tuple of features to keep ('transcript', 'exon', 'CDS');
+        CDS rows enable WashU-style thick-coding / thin-UTR gene rendering
     timeout: ignored in Python
     """
     if attributes is None:

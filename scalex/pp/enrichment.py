@@ -383,7 +383,7 @@ def plot_radar_module(adata, columns: str = 'cell_type', cols=None, save=None):
         Scaled average scores (range [0, 1]) per cell type.
     """
     from scipy.stats import zscore
-    from scalex.pl.plot import plot_radar
+    from scalex.pl import plot_radar
 
     if cols is None:
         cols = [i for i in adata.obs.columns if i.endswith('aucell')]

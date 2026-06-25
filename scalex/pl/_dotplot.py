@@ -53,6 +53,17 @@ def dotplot(
       gets a flat color for its dots and the matching y-axis term labels are
       colored accordingly.
 
+    Examples
+    --------
+    Plot a single GSEA result (top 10 terms)::
+
+        scalex.pl.dotplot(gsea_df, top_term=10)
+
+    Faceted by group with category colours::
+
+        scalex.pl.dotplot(gsea_df, x='cell_type', top_term=8,
+                          color={'T': '#1f77b4', 'B': '#d62728'})
+
     Parameters
     ----------
     df

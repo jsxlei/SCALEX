@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import scanpy as sc
 
 from scalex.pp._markers_db import cell_type_markers_human, cell_type_markers_mouse
@@ -100,9 +101,9 @@ def reorder_marker_dict_diagonal(marker_dict: dict, avg_adata, groupby: str = 'c
 
 
 def diagonal_heatmap(adata, groupby='cell_type', set_type='gene', order=None, dataset=None,
-                     n_clusters=25, top_n=300, processed=False, filter_pseudo=True,
-                     cluster_method='kmeans', method='wilcoxon', force=False,
-                     pval_cutoff=0.01, logfc_cutoff=1.5, min_cells=10, min_cell_per_batch=100,
+                     n_clusters=25, top_n=300, processed=False, filter_pseudo=None,
+                     cluster_method='kmeans', method='wilcoxon', force=True,
+                     pval_cutoff=None, logfc_cutoff=None, min_pct=None, min_cells=10, min_cell_per_batch=100,
                      cmap='RdBu_r', limits=(-2, 2), figsize=None, col_width=0.09, height=4,
                      save=None, **kwargs):
     """
@@ -123,7 +124,22 @@ def diagonal_heatmap(adata, groupby='cell_type', set_type='gene', order=None, da
     from scalex.pp.markers import find_gene_program, find_peak_program, find_consensus_program
     from scalex.pl._heatmap import plot_heatmap
 
-    marker_kw = dict(pval_cutoff=pval_cutoff, logfc_cutoff=logfc_cutoff,
+    # Peaks rarely show the large fold changes typical of marker genes, so use
+    # gentler cutoffs for peaks unless the caller overrides them explicitly.
+    if pval_cutoff is None:
+        pval_cutoff = 0.05 if set_type == 'peak' else 0.01
+    if logfc_cutoff is None:
+        logfc_cutoff = 0.25 if set_type == 'peak' else 1.5
+    # Detection-fraction (prevalence) filter: peaks are sparser, so use a gentler
+    # default than genes.
+    if min_pct is None:
+        min_pct = 0.05 if set_type == 'peak' else 0.10
+    # Pseudogene filtering only applies to gene names; peaks ("chr:start-end")
+    # must not be passed through format_rna.
+    if filter_pseudo is None:
+        filter_pseudo = set_type != 'peak'
+
+    marker_kw = dict(pval_cutoff=pval_cutoff, logfc_cutoff=logfc_cutoff, min_pct=min_pct,
                      min_cells=min_cells, min_cell_per_batch=min_cell_per_batch)
     if set_type == 'peak':
         if dataset is None:
@@ -132,7 +148,8 @@ def diagonal_heatmap(adata, groupby='cell_type', set_type='gene', order=None, da
                                                        filter_pseudo=filter_pseudo, method=method, force=force,
                                                        **marker_kw)
         else:
-            marker_dict, avg_adata = find_consensus_program(adata, groupby=groupby, across=dataset, set_type='peak')
+            marker_dict, avg_adata = find_consensus_program(adata, groupby=groupby, across=dataset, set_type='peak',
+                                                            processed=processed, top_n=top_n, method=method, **marker_kw)
     elif set_type == 'gene':
         if dataset is None:
             marker_dict, avg_adata = find_gene_program(adata, groupby=groupby, processed=processed,
@@ -140,17 +157,26 @@ def diagonal_heatmap(adata, groupby='cell_type', set_type='gene', order=None, da
                                                        filter_pseudo=filter_pseudo, cluster_method=cluster_method,
                                                        method=method, force=force, **marker_kw)
         else:
-            marker_dict, avg_adata = find_consensus_program(adata, groupby=groupby, across=dataset, set_type='gene')
+            marker_dict, avg_adata = find_consensus_program(adata, groupby=groupby, across=dataset, set_type='gene',
+                                                            processed=processed, top_n=top_n, method=method, **marker_kw)
     else:
         raise ValueError("set_type must be 'peak' or 'gene'")
 
-    if order is not None:
-        avg_adata = reorder(avg_adata, groupby=groupby, order=order)
+    # With multiple datasets, render one aligned panel per dataset (each with its
+    # own cell-type columns) instead of a single merged heatmap. The first dataset
+    # anchors the shared gene-program row order.
+    if dataset is not None:
+        datasets   = list(pd.unique(avg_adata.obs[dataset]))
+        panel_list = [avg_adata[avg_adata.obs[dataset] == d].copy() for d in datasets]
+        anchor_adata = panel_list[0]
+    else:
+        datasets, panel_list = None, None
+        anchor_adata = reorder(avg_adata, groupby=groupby, order=order) if order is not None else avg_adata
 
-    ordered_dict = reorder_marker_dict_diagonal(marker_dict, avg_adata, groupby=groupby)
+    ordered_dict = reorder_marker_dict_diagonal(marker_dict, anchor_adata, groupby=groupby)
     if order is not None:
         ordered_dict = {ct: ordered_dict[ct] for ct in order if ct in ordered_dict}
-    ct_order = order if order is not None else avg_adata.obs[groupby].tolist()
+    ct_order = order if order is not None else anchor_adata.obs[groupby].tolist()
 
     hm_kw = dict(
         order_rows=False,
@@ -162,14 +188,16 @@ def diagonal_heatmap(adata, groupby='cell_type', set_type='gene', order=None, da
         height=height,
         save=save,
         groupby=groupby,
-        labels=[set_type],
+        labels=datasets if dataset is not None else [set_type],
         show_gene_labels='bar',
+        per_panel_columns=dataset is not None,
     )
     hm_kw.update(kwargs)
 
+    data_arg = panel_list if dataset is not None else avg_adata
     if set_type == 'gene':
-        plot_heatmap(rna=avg_adata, genes=ordered_dict, **hm_kw)
+        plot_heatmap(rna=data_arg, genes=ordered_dict, **hm_kw)
     else:
-        plot_heatmap(atac=avg_adata, peaks=ordered_dict, **hm_kw)
+        plot_heatmap(atac=data_arg, peaks=ordered_dict, **hm_kw)
 
     return ordered_dict, avg_adata
